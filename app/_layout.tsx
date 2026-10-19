@@ -1,13 +1,10 @@
 import { Fab, FabIcon } from '@/components/ui/fab';
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { MoonIcon, SunIcon } from '@/components/ui/icon';
+import { appDarkTheme, appLightTheme } from '@/constants/theme';
 import '@/global.css';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from 'expo-router';
+import { ThemeProvider } from 'expo-router';
 import { useFonts } from 'expo-font';
 import { Slot, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -48,7 +45,7 @@ function RootLayoutNav() {
   );
 
   return (
-    <ThemeProvider value={colorMode === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={colorMode === 'dark' ? appDarkTheme : appLightTheme}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <GluestackUIProvider mode={colorMode}>
           <StatusBar style={colorMode === 'dark' ? 'light' : 'dark'} />
@@ -58,7 +55,7 @@ function RootLayoutNav() {
               onPress={() =>
                 setColorMode(colorMode === 'dark' ? 'light' : 'dark')
               }
-              className="m-6"
+              className="m-6 mb-24"
               size="lg"
             >
               <FabIcon as={colorMode === 'dark' ? MoonIcon : SunIcon} />
