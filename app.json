@@ -11,7 +11,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.sandesh.aadhikarai"
     },
     "web": {
       "bundler": "metro",
@@ -28,6 +29,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6f15fd5d-9bd5-4215-bd4a-53009dd5004e"
+      }
+    },
+    "owner": "shadowash8"
   }
 }
