@@ -1,9 +1,8 @@
-import { mutedColor } from '@/constants/theme';
-import { Tabs } from 'expo-router/js-tabs';
-import { useTheme } from 'expo-router';
-import { House, Landmark, MessageCircle } from 'lucide-react-native';
-import React from 'react';
-import { StyleSheet } from 'react-native';
+import { mutedColor } from "@/constants/theme";
+import { Tabs } from "expo-router/js-tabs";
+import { useTheme } from "expo-router";
+import { House, Landmark, Mic } from "lucide-react-native";
+import { StyleSheet } from "react-native";
 
 export default function TabLayout() {
   const theme = useTheme();
@@ -21,7 +20,7 @@ export default function TabLayout() {
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '600',
+          fontWeight: "600",
         },
         tabBarItemStyle: {
           paddingVertical: 4,
@@ -31,20 +30,16 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: "Home",
           tabBarIcon: ({ color, size, focused }) => (
-            <House
-              size={size}
-              color={color}
-              strokeWidth={focused ? 2.4 : 2}
-            />
+            <House size={size} color={color} strokeWidth={focused ? 2.4 : 2} />
           ),
         }}
       />
       <Tabs.Screen
         name="schemes"
         options={{
-          title: 'Schemes',
+          title: "Schemes",
           tabBarIcon: ({ color, size, focused }) => (
             <Landmark
               size={size}
@@ -57,13 +52,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="chat"
         options={{
-          title: 'Chat',
+          title: "Chat",
           tabBarIcon: ({ color, size, focused }) => (
-            <MessageCircle
-              size={size}
-              color={color}
-              strokeWidth={focused ? 2.4 : 2}
-            />
+            <Mic size={size} color={color} strokeWidth={focused ? 2.4 : 2} />
           ),
         }}
       />

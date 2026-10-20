@@ -41,7 +41,7 @@ export default function RootLayout() {
 function RootLayoutNav() {
   const pathname = usePathname();
   const [colorMode, setColorMode] = useState<'light' | 'dark' | 'system'>(
-    'dark'
+    'light'
   );
 
   return (
@@ -58,7 +58,7 @@ function RootLayoutNav() {
               className="m-6 mb-24"
               size="lg"
             >
-              <FabIcon as={colorMode === 'dark' ? MoonIcon : SunIcon} />
+              <FabIcon as={colorMode === 'dark' ? SunIcon : MoonIcon} />
             </Fab>
           )}
         </GluestackUIProvider>

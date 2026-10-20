@@ -1,32 +1,36 @@
-import Logo from '@/assets/icons/Logo';
-import { SchemeCard } from '@/components/SchemeCard';
-import { Box } from '@/components/ui/box';
-import { Pressable } from '@/components/ui/pressable';
-import { Text } from '@/components/ui/text';
-import { SCHEMES } from '@/constants/schemes';
-import { mutedColor } from '@/constants/theme';
-import { useRouter, useTheme } from 'expo-router';
+import Logo from "@/assets/icons/Logo";
+import { SchemeCard } from "@/components/SchemeCard";
+import { Pressable } from "@/components/ui/pressable";
+import { Text } from "@/components/ui/text";
+import { SCHEMES_DB } from "@/constants/schemes";
+import {
+  ON_PRIMARY,
+  mutedColor,
+  trustColor,
+  trustForegroundColor,
+} from "@/constants/theme";
+import { useRouter, useTheme } from "expo-router";
 import {
   ArrowRight,
   ChevronRight,
-  MessageCircle,
+  Languages,
   Search,
   ShieldCheck,
   Sparkles,
-} from 'lucide-react-native';
-import React from 'react';
-import { ScrollView, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "lucide-react-native";
+import { ScrollView, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
   const router = useRouter();
   const theme = useTheme();
   const muted = mutedColor(theme.dark);
-  const onPrimary = theme.dark ? '#171717' : '#fafafa';
+  const trustInk = trustColor(theme.dark);
+  const onTrust = trustForegroundColor(theme.dark);
 
   return (
     <SafeAreaView
-      edges={['top']}
+      edges={["top"]}
       className="flex-1 bg-background"
       style={{ flex: 1 }}
     >
@@ -40,10 +44,10 @@ export default function HomeScreen() {
           <Logo />
           <Pressable
             accessibilityLabel="Open chat"
-            onPress={() => router.push('/chat')}
+            onPress={() => router.push("/chat")}
             className="h-10 w-10 items-center justify-center rounded-full border border-border bg-card"
           >
-            <MessageCircle size={18} color={theme.colors.text} />
+            <Languages size={18} color={theme.colors.text} />
           </Pressable>
         </View>
 
@@ -56,7 +60,7 @@ export default function HomeScreen() {
 
         <Pressable
           accessibilityRole="search"
-          onPress={() => router.push('/schemes')}
+          onPress={() => router.push("/schemes")}
           className="flex-row items-center gap-3 rounded-2xl border border-border bg-card px-4 py-4"
         >
           <Search size={18} color={muted} />
@@ -65,29 +69,29 @@ export default function HomeScreen() {
           </Text>
         </Pressable>
 
-        <View className="gap-4 overflow-hidden rounded-3xl bg-primary p-5">
-          <View className="h-10 w-10 items-center justify-center rounded-2xl bg-primary-foreground/10">
-            <Sparkles size={18} color={onPrimary} />
+        <View className="gap-4 overflow-hidden rounded-3xl bg-trust p-5">
+          <View className="h-10 w-10 items-center justify-center rounded-2xl bg-trust-foreground/10">
+            <Sparkles size={18} color={onTrust} />
           </View>
 
           <View className="gap-2">
-            <Text className="text-xl font-bold text-primary-foreground">
+            <Text className="text-xl font-bold text-trust-foreground">
               Personalised scheme matches
             </Text>
-            <Text className="text-sm leading-5 text-primary-foreground/70">
+            <Text className="text-sm leading-5 text-trust-foreground/70">
               Answer a few questions and Aadhikar AI will find the schemes you
               are eligible for.
             </Text>
           </View>
 
           <Pressable
-            onPress={() => router.push('/chat')}
-            className="mt-1 flex-row items-center gap-2 self-start rounded-full bg-primary-foreground px-4 py-2.5"
+            onPress={() => router.push("/chat")}
+            className="mt-1 flex-row items-center gap-2 self-start rounded-full bg-primary px-4 py-2.5"
           >
-            <Text className="text-sm font-semibold text-primary">
+            <Text className="text-sm font-semibold text-primary-foreground">
               Ask Aadhikar AI
             </Text>
-            <ArrowRight size={14} color={theme.colors.primary} />
+            <ArrowRight size={14} color={ON_PRIMARY} />
           </Pressable>
         </View>
 
@@ -97,7 +101,7 @@ export default function HomeScreen() {
               Featured schemes
             </Text>
             <Pressable
-              onPress={() => router.push('/schemes')}
+              onPress={() => router.push("/schemes")}
               className="flex-row items-center gap-1"
             >
               <Text className="text-sm font-medium text-muted-foreground">
@@ -107,14 +111,14 @@ export default function HomeScreen() {
             </Pressable>
           </View>
 
-          {SCHEMES.slice(0, 2).map((scheme) => (
+          {SCHEMES_DB.slice(0, 2).map((scheme) => (
             <SchemeCard key={scheme.id} scheme={scheme} />
           ))}
         </View>
 
-        <View className="flex-row items-center gap-3 rounded-2xl border border-border bg-secondary/50 p-4">
-          <View className="h-10 w-10 items-center justify-center rounded-full bg-background">
-            <ShieldCheck size={18} color={muted} />
+        <View className="flex-row items-center gap-3 rounded-2xl bg-trust-tint p-4">
+          <View className="h-10 w-10 items-center justify-center rounded-full bg-card">
+            <ShieldCheck size={18} color={trustInk} />
           </View>
           <View className="flex-1 gap-0.5">
             <Text className="text-sm font-semibold text-foreground">

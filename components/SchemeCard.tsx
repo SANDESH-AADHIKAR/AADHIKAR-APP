@@ -1,88 +1,84 @@
-import { Card } from '@/components/ui/card';
+import { Pressable } from '@/components/ui/pressable';
 import { Text } from '@/components/ui/text';
-import type { Scheme, SchemeStatus } from '@/constants/schemes';
+import { mutedColor } from '@/constants/theme';
+import type { SchemeCategory, SchemeInfo } from '@/constants/types';
 import { useTheme } from 'expo-router';
-import { Landmark } from 'lucide-react-native';
+import * as WebBrowser from 'expo-web-browser';
+import { ExternalLink, Landmark } from 'lucide-react-native';
 import React from 'react';
 import { View } from 'react-native';
 
-const statusStyles: Record<
-  SchemeStatus,
-  { label: string; container: string; text: string }
-> = {
-  open: {
-    label: 'Open',
-    container: 'bg-emerald-500/10',
-    text: 'text-emerald-600 dark:text-emerald-400',
-  },
-  'closing-soon': {
-    label: 'Closing soon',
-    container: 'bg-amber-500/10',
-    text: 'text-amber-600 dark:text-amber-400',
-  },
-  ongoing: {
-    label: 'Ongoing',
-    container: 'bg-sky-500/10',
-    text: 'text-sky-600 dark:text-sky-400',
-  },
+/** Pastel topic tints from the AADHIKAR high-contrast palette. */
+const categoryStyles: Record<SchemeCategory, { tint: string; ink: string }> = {
+  Agriculture: { tint: '#FFE19F', ink: '#5A4208' },
+  Education: { tint: '#BEE6F3', ink: '#0C4653' },
+  Health: { tint: '#C0EDDE', ink: '#0B4A3B' },
+  Finance: { tint: '#C0E7BD', ink: '#1B4A19' },
+  Housing: { tint: '#FFE4AF', ink: '#59400A' },
+  Social: { tint: '#FFD8D9', ink: '#5C1F22' },
 };
 
 type SchemeCardProps = {
-  scheme: Scheme;
+  scheme: SchemeInfo;
 };
 
 export function SchemeCard({ scheme }: SchemeCardProps) {
   const theme = useTheme();
-  const status = statusStyles[scheme.status];
+  const muted = mutedColor(theme.dark);
+  const topic = categoryStyles[scheme.category];
+
+  const openLink = () => {
+    WebBrowser.openBrowserAsync(scheme.link);
+  };
 
   return (
-    <Card size="sm" className="gap-3 rounded-2xl p-4">
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={`${scheme.name} — open official website`}
+      onPress={openLink}
+      className="gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm"
+    >
       <View className="flex-row items-start gap-3">
-        <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-          <Landmark size={18} color={theme.colors.primary} />
+        <View
+          className="h-10 w-10 items-center justify-center rounded-xl"
+          style={{ backgroundColor: topic.tint }}
+        >
+          <Landmark size={18} color={topic.ink} />
         </View>
 
-        <View className="flex-1 gap-1.5">
-          <View className="flex-row flex-wrap items-center gap-2">
-            <Text className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <View className="flex-1 gap-1">
+          <View
+            className="self-start rounded-full px-2 py-0.5"
+            style={{ backgroundColor: topic.tint }}
+          >
+            <Text
+              className="text-xs font-semibold uppercase tracking-wide"
+              style={{ color: topic.ink }}
+            >
               {scheme.category}
             </Text>
-            <View className={`rounded-full px-2 py-0.5 ${status.container}`}>
-              <Text className={`text-xs font-medium ${status.text}`}>
-                {status.label}
-              </Text>
-            </View>
           </View>
           <Text className="text-base font-semibold leading-snug text-foreground">
-            {scheme.title}
-          </Text>
-        </View>
-      </View>
-
-      <Text
-        className="text-sm leading-5 text-muted-foreground"
-        numberOfLines={2}
-      >
-        {scheme.description}
-      </Text>
-
-      <View className="flex-row items-end justify-between gap-3 border-t border-border pt-3">
-        <View className="gap-0.5">
-          <Text className="text-xs text-muted-foreground">Benefit</Text>
-          <Text className="text-sm font-semibold text-foreground">
-            {scheme.benefit}
+            {scheme.name}
           </Text>
         </View>
 
-        {scheme.deadline ? (
-          <View className="items-end gap-0.5">
-            <Text className="text-xs text-muted-foreground">Deadline</Text>
-            <Text className="text-sm font-medium text-foreground">
-              {scheme.deadline}
-            </Text>
-          </View>
-        ) : null}
+        <ExternalLink size={16} color={muted} />
       </View>
-    </Card>
+
+      <View className="gap-0.5">
+        <Text className="text-xs text-muted-foreground">Benefit</Text>
+        <Text className="text-sm font-medium leading-5 text-foreground">
+          {scheme.benefits}
+        </Text>
+      </View>
+
+      <View className="gap-0.5 border-t border-border pt-3">
+        <Text className="text-xs text-muted-foreground">Eligibility</Text>
+        <Text className="text-sm leading-5 text-foreground">
+          {scheme.eligibility}
+        </Text>
+      </View>
+    </Pressable>
   );
 }

@@ -2,8 +2,8 @@ import { SchemeCard } from '@/components/SchemeCard';
 import { Text } from '@/components/ui/text';
 import { Input, InputField, InputSlot } from '@/components/ui/input';
 import { Pressable } from '@/components/ui/pressable';
-import { SCHEMES } from '@/constants/schemes';
-import { mutedColor } from '@/constants/theme';
+import { CATEGORIES, SCHEMES_DB } from '@/constants/schemes';
+import { ON_PRIMARY, mutedColor } from '@/constants/theme';
 import { useTheme } from 'expo-router';
 import { Search, SlidersHorizontal } from 'lucide-react-native';
 import React, { useMemo, useState } from 'react';
@@ -13,24 +13,29 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function SchemesScreen() {
   const theme = useTheme();
   const muted = mutedColor(theme.dark);
-  const onPrimary = theme.dark ? '#171717' : '#fafafa';
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
 
   const categories = useMemo(
-    () => ['All', ...Array.from(new Set(SCHEMES.map((scheme) => scheme.category)))],
+    () =>
+      Array.from(
+        new Set<string>([
+          ...CATEGORIES,
+          ...SCHEMES_DB.map((scheme) => scheme.category),
+        ])
+      ),
     []
   );
 
   const filteredSchemes = useMemo(() => {
     const search = query.trim().toLowerCase();
 
-    return SCHEMES.filter((scheme) => {
+    return SCHEMES_DB.filter((scheme) => {
       const matchesCategory =
         category === 'All' || scheme.category === category;
       const matchesSearch =
         !search ||
-        `${scheme.title} ${scheme.description} ${scheme.category}`
+        `${scheme.name} ${scheme.benefits} ${scheme.eligibility} ${scheme.category}`
           .toLowerCase()
           .includes(search);
 
@@ -98,7 +103,7 @@ export default function SchemesScreen() {
                     {item === 'All' ? (
                       <SlidersHorizontal
                         size={12}
-                        color={isActive ? onPrimary : muted}
+                        color={isActive ? ON_PRIMARY : muted}
                       />
                     ) : null}
                     <Text

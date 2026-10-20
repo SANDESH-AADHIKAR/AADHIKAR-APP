@@ -1,6 +1,6 @@
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
-import { mutedColor } from "@/constants/theme";
+import { mutedColor, ON_PRIMARY } from "@/constants/theme";
 import { useTheme } from "expo-router";
 import { Send } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
@@ -39,7 +39,6 @@ const PLACEHOLDER_REPLY =
 export default function ChatScreen() {
   const theme = useTheme();
   const muted = mutedColor(theme.dark);
-  const onPrimary = theme.dark ? "#171717" : "#fafafa";
 
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState("");
@@ -95,7 +94,7 @@ export default function ChatScreen() {
             Aadhikar AI
           </Text>
           <View className="flex-row items-center gap-1.5">
-            <View className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <View className="h-1.5 w-1.5 rounded-full bg-success" />
             <Text className="text-xs text-muted-foreground">
               Online · scheme assistant
             </Text>
@@ -145,13 +144,15 @@ export default function ChatScreen() {
                 <View
                   className={`rounded-2xl px-5 py-3.5 ${
                     isUser
-                      ? "rounded-br-md bg-primary"
-                      : "rounded-bl-md border border-border bg-card"
+                      ? "rounded-br-md bg-chat-user"
+                      : "rounded-bl-md bg-chat-assistant"
                   }`}
                 >
                   <Text
                     className={`text-sm leading-5 ${
-                      isUser ? "text-primary-foreground" : "text-foreground"
+                      isUser
+                        ? "text-chat-user-foreground"
+                        : "text-chat-assistant-foreground"
                     }`}
                   >
                     {message.text}
@@ -170,9 +171,9 @@ export default function ChatScreen() {
                 <Pressable
                   key={suggestion}
                   onPress={() => sendMessage(suggestion)}
-                  className="self-start rounded-full border border-border bg-card px-3.5 py-2"
+                  className="self-start rounded-full border border-border bg-accent px-3.5 py-2"
                 >
-                  <Text className="text-xs font-medium text-foreground">
+                  <Text className="text-xs font-medium text-accent-foreground">
                     {suggestion}
                   </Text>
                 </Pressable>
@@ -181,8 +182,8 @@ export default function ChatScreen() {
           ) : null}
 
           {isTyping ? (
-            <View className="self-start rounded-2xl rounded-bl-md border border-border bg-card px-5 py-3.5">
-              <Text className="text-sm text-muted-foreground">
+            <View className="self-start rounded-2xl rounded-bl-md bg-chat-assistant px-5 py-3.5">
+              <Text className="text-sm text-chat-assistant-foreground">
                 Aadhikar AI is typing...
               </Text>
             </View>
@@ -191,7 +192,7 @@ export default function ChatScreen() {
 
         <View className="border-t border-border px-4 pb-2 pt-3">
           <View className="flex-row items-end gap-2">
-            <View className="min-h-12 flex-1 justify-center rounded-2xl border border-border bg-card px-4">
+            <View className="min-h-12 flex-1 justify-center rounded-2xl border border-input bg-card px-4">
               <TextInput
                 value={input}
                 onChangeText={setInput}
@@ -214,7 +215,7 @@ export default function ChatScreen() {
             >
               <Send
                 size={18}
-                color={input.trim() && !isTyping ? onPrimary : muted}
+                color={input.trim() && !isTyping ? ON_PRIMARY : muted}
               />
             </Pressable>
           </View>
