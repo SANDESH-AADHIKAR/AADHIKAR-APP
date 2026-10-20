@@ -16,6 +16,7 @@ const categoryStyles: Record<SchemeCategory, { tint: string; ink: string }> = {
   Finance: { tint: '#C0E7BD', ink: '#1B4A19' },
   Housing: { tint: '#FFE4AF', ink: '#59400A' },
   Social: { tint: '#FFD8D9', ink: '#5C1F22' },
+  Women: { tint: '#E9DFF5', ink: '#3F2A5C' },
 };
 
 type SchemeCardProps = {
@@ -25,7 +26,7 @@ type SchemeCardProps = {
 export function SchemeCard({ scheme }: SchemeCardProps) {
   const theme = useTheme();
   const muted = mutedColor(theme.dark);
-  const topic = categoryStyles[scheme.category];
+  const topic = categoryStyles[scheme.category] ?? categoryStyles.Social;
 
   const openLink = () => {
     WebBrowser.openBrowserAsync(scheme.link);

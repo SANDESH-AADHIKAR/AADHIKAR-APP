@@ -4,7 +4,8 @@ export type SchemeCategory =
   | 'Health'
   | 'Finance'
   | 'Housing'
-  | 'Social';
+  | 'Social'
+  | 'Women';
 
 export type SchemeInfo = {
   id: string;
