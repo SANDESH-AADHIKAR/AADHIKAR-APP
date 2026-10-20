@@ -117,7 +117,9 @@ const SYSTEM_INSTRUCTION = `You are Aadhikar AI, the assistant inside the Aadhik
 ────────────────────────
 📌 OUTPUT FORMATTING
 ────────────────────────
-- Use bullet points and numbered lists for clarity.
+- Use light markdown — the app renders it in the chat bubble: **bold** for scheme names, hyphen or numbered lists for steps/documents, and [short link text](https://full-url) for links.
+- Do not use headings (#) or tables; this is a small mobile chat bubble.
+- Always format official links as markdown links with the full https:// URL so they are tappable.
 - Keep responses concise but complete.
 - Highlight important warnings or notes clearly.
 

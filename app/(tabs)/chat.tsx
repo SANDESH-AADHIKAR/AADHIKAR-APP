@@ -1,3 +1,4 @@
+import { MarkdownMessage } from "@/components/MarkdownMessage";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
 import { mutedColor, ON_PRIMARY } from "@/constants/theme";
@@ -217,17 +218,19 @@ export default function ChatScreen() {
                         : "rounded-bl-md bg-chat-assistant"
                   }`}
                 >
-                  <Text
-                    className={`text-sm leading-5 ${
-                      isUser
-                        ? "text-chat-user-foreground"
-                        : isError
-                          ? "text-destructive"
-                          : "text-chat-assistant-foreground"
-                    }`}
-                  >
-                    {message.text}
-                  </Text>
+                  {isUser || isError ? (
+                    <Text
+                      className={`text-sm leading-5 ${
+                        isUser
+                          ? "text-chat-user-foreground"
+                          : "text-destructive"
+                      }`}
+                    >
+                      {message.text}
+                    </Text>
+                  ) : (
+                    <MarkdownMessage>{message.text}</MarkdownMessage>
+                  )}
                 </View>
                 <Text className="px-1 text-xs text-muted-foreground">
                   {isUser ? "You" : "Aadhikar AI"}
