@@ -1,6 +1,11 @@
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
 import { mutedColor, ON_PRIMARY } from "@/constants/theme";
+import {
+  describeGeminiError,
+  hasGeminiKey,
+  streamAadhikar,
+} from "@/lib/gemini";
 import { useTheme } from "expo-router";
 import { Send } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
@@ -19,12 +24,14 @@ type ChatMessage = {
   id: string;
   role: ChatRole;
   text: string;
+  /** Error bubbles are shown to the user but never sent to the model. */
+  isError?: boolean;
 };
 
 const WELCOME_MESSAGE: ChatMessage = {
   id: "welcome",
   role: "assistant",
-  text: "Namaste! I'm Aadhikar AI. Tell me a little about yourself and I'll help you find government schemes you may be eligible for.",
+  text: "Namaste! I'm Aadhikar AI. Tell me a little about yourself — your state, age, occupation or family situation — and I'll help you find government schemes you may be eligible for.",
 };
 
 const SUGGESTIONS = [
@@ -32,9 +39,6 @@ const SUGGESTIONS = [
   "What documents do I need?",
   "How do I apply for PM-KISAN?",
 ];
-
-const PLACEHOLDER_REPLY =
-  "Thanks for sharing that. This is a preview of the assistant — once the scheme database and AI backend are connected, I'll suggest the best matches and explain how to apply.";
 
 export default function ChatScreen() {
   const theme = useTheme();
@@ -45,17 +49,26 @@ export default function ChatScreen() {
   const [isTyping, setIsTyping] = useState(false);
 
   const scrollRef = useRef<ScrollView>(null);
-  const replyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeRequest = useRef<AbortController | null>(null);
+  const busyRef = useRef(false);
 
   useEffect(() => {
     return () => {
-      if (replyTimeout.current) clearTimeout(replyTimeout.current);
+      activeRequest.current?.abort();
     };
   }, []);
 
-  const sendMessage = (rawText: string) => {
+  const sendMessage = async (rawText: string) => {
     const text = rawText.trim();
-    if (!text || isTyping) return;
+    if (!text || busyRef.current) return;
+
+    busyRef.current = true;
+
+    const history = messages
+      .filter(
+        (message) => message.id !== WELCOME_MESSAGE.id && !message.isError
+      )
+      .map((message) => ({ role: message.role, text: message.text }));
 
     setMessages((current) => [
       ...current,
@@ -64,20 +77,67 @@ export default function ChatScreen() {
     setInput("");
     setIsTyping(true);
 
-    replyTimeout.current = setTimeout(() => {
-      setMessages((current) => [
-        ...current,
-        {
-          id: `assistant-${Date.now()}`,
-          role: "assistant",
-          text: PLACEHOLDER_REPLY,
+    const controller = new AbortController();
+    activeRequest.current = controller;
+    let assistantId: string | null = null;
+
+    try {
+      await streamAadhikar(
+        [...history, { role: "user", text }],
+        (delta) => {
+          if (assistantId === null) {
+            const id = `assistant-${Date.now()}`;
+            assistantId = id;
+            setMessages((current) => [
+              ...current,
+              { id, role: "assistant", text: delta },
+            ]);
+          } else {
+            const id = assistantId;
+            setMessages((current) =>
+              current.map((message) =>
+                message.id === id
+                  ? { ...message, text: message.text + delta }
+                  : message
+              )
+            );
+          }
         },
-      ]);
+        { signal: controller.signal }
+      );
+
+      if (assistantId !== null) {
+        const id = assistantId;
+        setMessages((current) =>
+          current.map((message) =>
+            message.id === id
+              ? { ...message, text: message.text.trim() }
+              : message
+          )
+        );
+      }
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        setMessages((current) => [
+          ...current,
+          {
+            id: `assistant-error-${Date.now()}`,
+            role: "assistant",
+            text: describeGeminiError(error),
+            isError: true,
+          },
+        ]);
+      }
+    } finally {
+      if (activeRequest.current === controller) activeRequest.current = null;
+      busyRef.current = false;
       setIsTyping(false);
-    }, 900);
+    }
   };
 
   const showSuggestions = messages.length === 1 && !isTyping;
+  const lastMessage = messages[messages.length - 1];
+  const showTyping = isTyping && lastMessage?.role !== "assistant";
 
   return (
     <SafeAreaView
@@ -94,9 +154,15 @@ export default function ChatScreen() {
             Aadhikar AI
           </Text>
           <View className="flex-row items-center gap-1.5">
-            <View className="h-1.5 w-1.5 rounded-full bg-success" />
+            <View
+              className={`h-1.5 w-1.5 rounded-full ${
+                hasGeminiKey ? "bg-success" : "bg-warning"
+              }`}
+            />
             <Text className="text-xs text-muted-foreground">
-              Online · scheme assistant
+              {hasGeminiKey
+                ? "Online · Powered by Gemini"
+                : "Offline · Gemini API key needed"}
             </Text>
           </View>
         </View>
@@ -133,6 +199,7 @@ export default function ChatScreen() {
 
           {messages.map((message) => {
             const isUser = message.role === "user";
+            const isError = message.isError === true;
 
             return (
               <View
@@ -145,14 +212,18 @@ export default function ChatScreen() {
                   className={`rounded-2xl px-5 py-3.5 ${
                     isUser
                       ? "rounded-br-md bg-chat-user"
-                      : "rounded-bl-md bg-chat-assistant"
+                      : isError
+                        ? "rounded-bl-md border border-destructive/40 bg-destructive/10"
+                        : "rounded-bl-md bg-chat-assistant"
                   }`}
                 >
                   <Text
                     className={`text-sm leading-5 ${
                       isUser
                         ? "text-chat-user-foreground"
-                        : "text-chat-assistant-foreground"
+                        : isError
+                          ? "text-destructive"
+                          : "text-chat-assistant-foreground"
                     }`}
                   >
                     {message.text}
@@ -181,7 +252,7 @@ export default function ChatScreen() {
             </View>
           ) : null}
 
-          {isTyping ? (
+          {showTyping ? (
             <View className="self-start rounded-2xl rounded-bl-md bg-chat-assistant px-5 py-3.5">
               <Text className="text-sm text-chat-assistant-foreground">
                 Aadhikar AI is typing...
