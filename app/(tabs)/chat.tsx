@@ -2,14 +2,16 @@ import { MarkdownMessage } from "@/components/MarkdownMessage";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
 import { mutedColor, ON_PRIMARY } from "@/constants/theme";
+import { useSchemes } from "@/hooks/useSchemes";
 import {
+  buildSchemeContext,
   describeGeminiError,
   hasGeminiKey,
   streamAadhikar,
 } from "@/lib/gemini";
 import { useTheme } from "expo-router";
 import { Send } from "lucide-react-native";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Keyboard,
   Platform,
@@ -54,6 +56,11 @@ export default function ChatScreen() {
   const [input, setInput] = useState("");
   const [inputHeight, setInputHeight] = useState(MIN_INPUT_HEIGHT);
   const [isTyping, setIsTyping] = useState(false);
+  const { schemes } = useSchemes();
+  const schemeContext = useMemo(
+    () => buildSchemeContext(schemes),
+    [schemes]
+  );
 
   const scrollRef = useRef<ScrollView>(null);
   const activeRequest = useRef<AbortController | null>(null);
@@ -141,7 +148,7 @@ export default function ChatScreen() {
             );
           }
         },
-        { signal: controller.signal }
+        { signal: controller.signal, schemeContext }
       );
 
       if (assistantId !== null) {

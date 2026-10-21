@@ -2,13 +2,13 @@ import Logo from "@/assets/icons/Logo";
 import { SchemeCard } from "@/components/SchemeCard";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
-import { SCHEMES_DB } from "@/constants/schemes";
 import {
   ON_PRIMARY,
   mutedColor,
   trustColor,
   trustForegroundColor,
 } from "@/constants/theme";
+import { useSchemes } from "@/hooks/useSchemes";
 import { useRouter, useTheme } from "expo-router";
 import {
   ArrowRight,
@@ -18,7 +18,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react-native";
-import { ScrollView, View } from "react-native";
+import { ActivityIndicator, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function HomeScreen() {
@@ -27,6 +27,8 @@ export default function HomeScreen() {
   const muted = mutedColor(theme.dark);
   const trustInk = trustColor(theme.dark);
   const onTrust = trustForegroundColor(theme.dark);
+  const { schemes, isLoading, isRefreshing, error, refetch } = useSchemes();
+  const isBusy = isLoading || isRefreshing;
 
   return (
     <SafeAreaView
@@ -111,9 +113,37 @@ export default function HomeScreen() {
             </Pressable>
           </View>
 
-          {SCHEMES_DB.slice(0, 2).map((scheme) => (
-            <SchemeCard key={scheme.id} scheme={scheme} />
-          ))}
+          {isBusy ? (
+            <View className="flex-row items-center justify-center gap-2 rounded-2xl border border-border bg-card p-5">
+              <ActivityIndicator color={theme.colors.primary} />
+              <Text className="text-sm text-muted-foreground">
+                Loading schemes...
+              </Text>
+            </View>
+          ) : error ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={refetch}
+              className="items-center gap-1 rounded-2xl border border-border bg-card p-5"
+            >
+              <Text className="text-sm font-semibold text-foreground">
+                Could not load schemes
+              </Text>
+              <Text className="text-xs text-muted-foreground">
+                Tap to retry
+              </Text>
+            </Pressable>
+          ) : schemes.length === 0 ? (
+            <View className="items-center rounded-2xl border border-border bg-card p-5">
+              <Text className="text-sm text-muted-foreground">
+                No schemes available yet.
+              </Text>
+            </View>
+          ) : (
+            schemes.slice(0, 2).map((scheme) => (
+              <SchemeCard key={scheme.id} scheme={scheme} />
+            ))
+          )}
         </View>
 
         <View className="flex-row items-center gap-3 rounded-2xl bg-trust-tint p-4">

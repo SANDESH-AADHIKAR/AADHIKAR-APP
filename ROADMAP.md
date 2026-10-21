@@ -53,7 +53,7 @@ Coupling notes:
 - [x] Add category section headers and counts.
 - [x] Keep search results grouped by category.
 - [x] Preserve grouping when filtering by a single category.
-- [ ] Reuse the same ordering after the Supabase migration.
+- [x] Reuse the same ordering after the Supabase migration.
 
 ---
 
@@ -61,21 +61,25 @@ Coupling notes:
 
 ### 2.1 Supabase project + client (#6)
 
-- [ ] Create the Supabase project.
-- [ ] Add `lib/supabase.ts` with the React Native client (URL + anon key).
-- [ ] Add `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` to `.env.example`.
-- [ ] Confirm env vars are read correctly at build time.
-- [ ] Do not commit `.env`.
+- [x] Create the Supabase project.
+- [x] Add `lib/supabase.ts` with the React Native client (URL + publishable key + AsyncStorage session persistence).
+- [x] Add `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` to the local `.env` (user-managed; `.env.example` left untouched).
+- [x] Confirm env vars are read correctly at build time.
+- [x] Do not commit `.env`.
+- [x] Keep the secret/service role key out of the client bundle; only the publishable key is used.
 
 ### 2.2 Schemes table + seed (#6)
 
-- [ ] Create `schemes` table: `id`, `slug`, `name`, `category`, `benefits`, `eligibility`, `link`, `level` (central/state), `state`, optional `documents`, `tags`.
-- [ ] Seed the existing 50 schemes.
-- [ ] Enable RLS with public `select` access.
-- [ ] Add a `useSchemes` hook with loading, error and retry states.
-- [ ] Replace `SCHEMES_DB` imports on Home and Schemes with fetched data.
-- [ ] Preserve category grouping and search/filter behavior.
-- [ ] Decide the single source of truth for AI grounding — ideally the edge function queries Supabase directly.
+- [x] Write setup SQL with the table, RLS policy, grants, indexes and 50-row seed (applied, then removed from the repo to avoid duplication).
+- [x] Run the setup SQL in Supabase and confirm 50 active rows.
+- [x] Create `schemes` table: `id`, `slug`, `name`, `category`, `benefits`, `eligibility`, `link`, `level` (central/state), `state`, optional `documents`, `tags`.
+- [x] Seed the existing 50 schemes.
+- [x] Enable RLS with public `select` access.
+- [x] Add a `useSchemes` hook with loading, error, refresh and retry states.
+- [x] Replace `SCHEMES_DB` imports on Home and Schemes with fetched data.
+- [x] Remove the static `SCHEMES_DB` array; keep only the shared category order.
+- [x] Preserve category grouping, section headers and search/filter behavior.
+- [x] Build the AI grounding context from the fetched scheme list (the edge function will query Supabase directly later).
 - [ ] Optional: subscribe to realtime scheme changes.
 
 ### 2.3 Auth (#7)
@@ -193,11 +197,12 @@ Coupling notes:
 
 Update `.env.example` only; never commit `.env`.
 
-| Variable                            | Where                         | Purpose                                     |
-| ----------------------------------- | ----------------------------- | ------------------------------------------- |
-| `EXPO_PUBLIC_SUPABASE_URL`          | client                        | Supabase project URL                        |
-| `EXPO_PUBLIC_SUPABASE_ANON_KEY`     | client                        | Public anon key (safe with RLS)             |
-| `GEMINI_API_KEY`                    | Supabase Edge Function secret | Server-side Gemini key                      |
-| `EXPO_PUBLIC_GEMINI_API_KEY`        | client (temporary)            | Remove once the edge function proxy is live |
-| `EXPO_PUBLIC_GEMINI_MODEL`          | client/server                 | Optional model override                     |
-| `EXPO_PUBLIC_GEMINI_THINKING_LEVEL` | client/server                 | Optional thinking-level override            |
+| Variable                                | Where                         | Purpose                                          |
+| --------------------------------------- | ----------------------------- | ------------------------------------------------ |
+| `EXPO_PUBLIC_SUPABASE_URL`              | client                        | Supabase project URL                             |
+| `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`  | client                        | Public publishable key (safe with RLS)           |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY`         | client fallback               | Legacy anon key; used only if no publishable key |
+| `GEMINI_API_KEY`                        | Supabase Edge Function secret | Server-side Gemini key                           |
+| `EXPO_PUBLIC_GEMINI_API_KEY`            | client (temporary)            | Remove once the edge function proxy is live      |
+| `EXPO_PUBLIC_GEMINI_MODEL`              | client/server                 | Optional model override                          |
+| `EXPO_PUBLIC_GEMINI_THINKING_LEVEL`     | client/server                 | Optional thinking-level override                 |

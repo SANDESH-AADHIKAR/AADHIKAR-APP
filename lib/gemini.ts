@@ -1,4 +1,4 @@
-import { SCHEMES_DB } from "@/constants/schemes";
+import type { SchemeInfo } from "@/constants/types";
 import { fetch as expoFetch } from "expo/fetch";
 
 /**
@@ -69,10 +69,20 @@ export class GeminiError extends Error {
   }
 }
 
-const SCHEME_CONTEXT = SCHEMES_DB.map(
-  (scheme) =>
-    `• ${scheme.name} — ${scheme.category}\n  Benefits: ${scheme.benefits}\n  Eligibility: ${scheme.eligibility}\n  Official link: ${scheme.link}`,
-).join("\n");
+const EMPTY_SCHEME_CONTEXT =
+  "The live scheme catalog is not available right now. Do not invent scheme details; direct the user to official government portals and say when you are unsure.";
+
+/** Builds the grounding block from the current Supabase scheme catalog. */
+export function buildSchemeContext(schemes: SchemeInfo[]) {
+  if (schemes.length === 0) return EMPTY_SCHEME_CONTEXT;
+
+  return schemes
+    .map(
+      (scheme) =>
+        `• ${scheme.name} — ${scheme.category}\n  Benefits: ${scheme.benefits}\n  Eligibility: ${scheme.eligibility}\n  Official link: ${scheme.link}`,
+    )
+    .join("\n");
+}
 
 const SYSTEM_INSTRUCTION = `You are Aadhikar AI, the assistant inside the Aadhikar app — a civic voice portal that helps Indian citizens discover government schemes and benefits.
 ────────────────────────
@@ -123,10 +133,14 @@ const SYSTEM_INSTRUCTION = `You are Aadhikar AI, the assistant inside the Aadhik
 - Keep responses concise but complete.
 - Highlight important warnings or notes clearly.
 
-IMPORTANT: Help the user troubleshoot error messages if an image is provided.
+IMPORTANT: Help the user troubleshoot error messages if an image is provided.`;
+
+function buildSystemInstruction(schemeContext: string) {
+  return `${SYSTEM_INSTRUCTION}
 
 Schemes in the database:
-${SCHEME_CONTEXT}`;
+${schemeContext || EMPTY_SCHEME_CONTEXT}`;
+}
 
 type GeminiPart = { text?: string; thought?: boolean };
 
@@ -140,14 +154,16 @@ type GeminiResponse = {
   error?: { message?: string };
 };
 
-function buildRequestBody(history: ChatTurn[]) {
+function buildRequestBody(history: ChatTurn[], schemeContext: string) {
   const contents = history.slice(-MAX_TURNS).map((turn) => ({
     role: turn.role === "assistant" ? "model" : "user",
     parts: [{ text: turn.text }],
   }));
 
   return {
-    systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+    systemInstruction: {
+      parts: [{ text: buildSystemInstruction(schemeContext) }],
+    },
     contents,
     generationConfig: {
       temperature: 0.5,
@@ -160,6 +176,7 @@ function buildRequestBody(history: ChatTurn[]) {
 async function postGemini(
   method: "generateContent" | "streamGenerateContent",
   history: ChatTurn[],
+  schemeContext: string,
   signal?: AbortSignal,
 ): Promise<Response> {
   if (!hasGeminiKey) {
@@ -181,7 +198,7 @@ async function postGemini(
         "Content-Type": "application/json",
         "x-goog-api-key": API_KEY,
       },
-      body: JSON.stringify(buildRequestBody(history)),
+      body: JSON.stringify(buildRequestBody(history, schemeContext)),
       signal,
     });
   } catch (error) {
@@ -201,15 +218,26 @@ async function throwApiError(response: Response): Promise<never> {
   );
 }
 
+export type AadhikarOptions = {
+  signal?: AbortSignal;
+  /** Grounding context built from the current scheme catalog. */
+  schemeContext?: string;
+};
+
 /**
  * Non-streaming request. Used as a fallback when the runtime does not expose
  * a readable response body.
  */
 export async function askAadhikar(
   history: ChatTurn[],
-  options: { signal?: AbortSignal } = {},
+  options: AadhikarOptions = {},
 ): Promise<string> {
-  const response = await postGemini("generateContent", history, options.signal);
+  const response = await postGemini(
+    "generateContent",
+    history,
+    options.schemeContext ?? "",
+    options.signal,
+  );
 
   if (!response.ok) {
     await throwApiError(response);
@@ -247,11 +275,12 @@ export async function askAadhikar(
 export async function streamAadhikar(
   history: ChatTurn[],
   onDelta: (text: string) => void,
-  options: { signal?: AbortSignal } = {},
+  options: AadhikarOptions = {},
 ): Promise<string> {
   const response = await postGemini(
     "streamGenerateContent",
     history,
+    options.schemeContext ?? "",
     options.signal,
   );
 
