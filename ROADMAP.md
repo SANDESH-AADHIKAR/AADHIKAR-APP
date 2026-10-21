@@ -40,19 +40,19 @@ Coupling notes:
 
 ### 1.2 Chat composer: multiline auto-grow (#3)
 
-- [ ] Make the `TextInput` grow from ~48px to ~112px using `onContentSizeChange`.
-- [ ] After the max height, let the input scroll internally instead of pushing the chat up.
-- [ ] Keep the send button anchored at the bottom.
-- [ ] Ensure the chat list shrinks/scrolls correctly while the composer grows.
-- [ ] Test with 1 line, 3 lines, and more than the max height.
+- [x] Make the `TextInput` grow from ~48px to ~112px using `onContentSizeChange`.
+- [x] After the max height, let the input scroll internally instead of pushing the chat up.
+- [x] Keep the send button anchored at the bottom.
+- [x] Ensure the chat list shrinks/scrolls correctly while the composer grows.
+- [x] Test with 1 line, 3 lines, and more than the max height.
 
 ### 1.3 Schemes list: group and sort by category (#1)
 
-- [ ] Replace the flat `FlatList` with a `SectionList` grouped in the fixed `CATEGORIES` order.
-- [ ] Add category section headers and counts.
-- [ ] Keep search results grouped by category.
-- [ ] Preserve grouping when filtering by a single category.
-- [ ] Note: IDs 26–50 in `constants/schemes.ts` currently interleave categories; fix in the UI rather than only reordering the array.
+- [x] Reorder the static seed array by category and renumber IDs sequentially from 1–50.
+- [x] Replace the flat `FlatList` with a `SectionList` grouped in the fixed `CATEGORIES` order.
+- [x] Add category section headers and counts.
+- [x] Keep search results grouped by category.
+- [x] Preserve grouping when filtering by a single category.
 - [ ] Reuse the same ordering after the Supabase migration.
 
 ---
