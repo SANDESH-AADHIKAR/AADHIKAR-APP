@@ -11,12 +11,13 @@ import { useTheme } from "expo-router";
 import { Send } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
   ScrollView,
   TextInput,
   View,
 } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type ChatRole = "user" | "assistant";
@@ -41,12 +42,17 @@ const SUGGESTIONS = [
   "How do I apply for PM-KISAN?",
 ];
 
+/** TextInput content height (excluding the wrapper's vertical padding). */
+const MIN_INPUT_HEIGHT = 24;
+const MAX_INPUT_HEIGHT = 88;
+
 export default function ChatScreen() {
   const theme = useTheme();
   const muted = mutedColor(theme.dark);
 
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState("");
+  const [inputHeight, setInputHeight] = useState(MIN_INPUT_HEIGHT);
   const [isTyping, setIsTyping] = useState(false);
 
   const scrollRef = useRef<ScrollView>(null);
@@ -58,6 +64,37 @@ export default function ChatScreen() {
       activeRequest.current?.abort();
     };
   }, []);
+
+  // Keep the latest messages visible when the keyboard opens.
+  useEffect(() => {
+    const subscription = Keyboard.addListener("keyboardDidShow", () => {
+      requestAnimationFrame(() =>
+        scrollRef.current?.scrollToEnd({ animated: true })
+      );
+    });
+
+    return () => subscription.remove();
+  }, []);
+
+  // A growing composer reduces the message area, so keep the bottom in view.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      scrollRef.current?.scrollToEnd({ animated: false });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [inputHeight]);
+
+  const resizeInput = (contentHeight: number) => {
+    const nextHeight = Math.min(
+      MAX_INPUT_HEIGHT,
+      Math.max(MIN_INPUT_HEIGHT, contentHeight)
+    );
+
+    setInputHeight((current) =>
+      Math.abs(current - nextHeight) > 0.5 ? nextHeight : current
+    );
+  };
 
   const sendMessage = async (rawText: string) => {
     const text = rawText.trim();
@@ -170,8 +207,9 @@ export default function ChatScreen() {
       </View>
 
       <KeyboardAvoidingView
+        automaticOffset
+        behavior="padding"
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
           ref={scrollRef}
@@ -266,14 +304,18 @@ export default function ChatScreen() {
 
         <View className="border-t border-border px-4 pb-2 pt-3">
           <View className="flex-row items-end gap-2">
-            <View className="min-h-12 flex-1 justify-center rounded-2xl border border-input bg-card px-4">
+            <View className="min-h-12 flex-1 justify-center rounded-2xl border border-input bg-card px-4 py-3">
               <TextInput
                 value={input}
                 onChangeText={setInput}
                 placeholder="Ask about any scheme..."
                 placeholderTextColor={muted}
-                className="max-h-28 flex-1 py-3 text-sm text-foreground"
+                className="text-sm text-foreground"
+                style={{ height: inputHeight, paddingVertical: 0 }}
                 multiline
+                onContentSizeChange={(event) =>
+                  resizeInput(event.nativeEvent.contentSize.height)
+                }
                 onSubmitEditing={() => sendMessage(input)}
                 returnKeyType="send"
               />

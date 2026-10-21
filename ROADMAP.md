@@ -32,11 +32,11 @@ Coupling notes:
 
 ### 1.1 Chat composer: keyboard overlap (#2)
 
-- [ ] Diagnose keyboard behavior on iOS, Android and web.
-- [ ] Wrap the app in `KeyboardProvider` from `react-native-keyboard-controller` (already installed).
-- [ ] Replace the current `KeyboardAvoidingView` usage with a keyboard-aware view/sticky composer.
-- [ ] Verify the input stays visible above the keyboard with the tab bar present.
-- [ ] Test on Android (resize/edge-to-edge).
+- [x] Diagnose keyboard behavior on iOS, Android and web.
+- [x] Wrap the app in `KeyboardProvider` from `react-native-keyboard-controller` (already installed).
+- [x] Replace the current `KeyboardAvoidingView` usage with a keyboard-aware view/sticky composer.
+- [x] Verify the input stays visible above the keyboard with the tab bar present.
+- [x] Test on Android (resize/edge-to-edge).
 
 ### 1.2 Chat composer: multiline auto-grow (#3)
 
@@ -127,12 +127,12 @@ Coupling notes:
 - [ ] Create `profiles` table with `onboarding_completed` and editable fields.
 - [ ] Add a profile trigger or upsert after sign-up.
 - [ ] Build a 5-step onboarding flow:
-  - [ ] Language
-  - [ ] Age + gender
-  - [ ] Occupation (student, farmer, salaried, self-employed, homemaker, retired, other)
-  - [ ] State + rural/urban
-  - [ ] Household income bracket + family size (optional)
-  - [ ] Review + consent
+    - [ ] Language
+    - [ ] Age + gender
+    - [ ] Occupation (student, farmer, salaried, self-employed, homemaker, retired, other)
+    - [ ] State + rural/urban
+    - [ ] Household income bracket + family size (optional)
+    - [ ] Review + consent
 - [ ] Add progress indicator, back/next, validation and skip for optional fields.
 - [ ] Redirect new users to onboarding; redirect completed users to Home/Chat.
 - [ ] Inject the profile into the Gemini system prompt.
@@ -147,8 +147,8 @@ Coupling notes:
 ### 4.1 Technical spike (#5)
 
 - [ ] Choose the speech-to-text approach:
-  - `expo-speech-recognition` on native + Web Speech API on web, or
-  - record audio and transcribe via Gemini.
+    - `expo-speech-recognition` on native + Web Speech API on web, or
+    - record audio and transcribe via Gemini.
 - [ ] Confirm whether a development build is required (likely yes on native).
 - [ ] Add microphone/speech permissions to `app.json`.
 - [ ] Test on a real device and on web (HTTPS required for Web Speech API).
