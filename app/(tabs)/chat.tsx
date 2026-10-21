@@ -1,6 +1,11 @@
 import { MarkdownMessage } from "@/components/MarkdownMessage";
+import { Button, ButtonText } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Heading } from "@/components/ui/heading";
+import { HStack } from "@/components/ui/hstack";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
+import { VStack } from "@/components/ui/vstack";
 import { mutedColor, ON_PRIMARY } from "@/constants/theme";
 import { useSchemes } from "@/hooks/useSchemes";
 import {
@@ -9,10 +14,12 @@ import {
   hasGeminiKey,
   streamAadhikar,
 } from "@/lib/gemini";
-import { useTheme } from "expo-router";
-import { Send } from "lucide-react-native";
+import { useAuth } from "@/providers/AuthProvider";
+import { useRouter, useTheme } from "expo-router";
+import { LogIn, LogOut, Send, ShieldCheck } from "lucide-react-native";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Keyboard,
   Platform,
   ScrollView,
@@ -50,7 +57,9 @@ const MAX_INPUT_HEIGHT = 88;
 
 export default function ChatScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const muted = mutedColor(theme.dark);
+  const { session, user, isLoading: isAuthLoading, signOut } = useAuth();
 
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState("");
@@ -71,6 +80,15 @@ export default function ChatScreen() {
       activeRequest.current?.abort();
     };
   }, []);
+
+  useEffect(() => {
+    if (!isAuthLoading && !session) {
+      activeRequest.current?.abort();
+      busyRef.current = false;
+      setIsTyping(false);
+      Keyboard.dismiss();
+    }
+  }, [isAuthLoading, session]);
 
   // Keep the latest messages visible when the keyboard opens.
   useEffect(() => {
@@ -106,6 +124,10 @@ export default function ChatScreen() {
   const sendMessage = async (rawText: string) => {
     const text = rawText.trim();
     if (!text || busyRef.current) return;
+
+    if (!session) {
+      return;
+    }
 
     busyRef.current = true;
 
@@ -180,6 +202,14 @@ export default function ChatScreen() {
     }
   };
 
+  const handleSignOut = () => {
+    activeRequest.current?.abort();
+    router.replace('/');
+    void signOut();
+  };
+
+  const userInitial = user?.email?.trim().charAt(0).toUpperCase() || 'U';
+
   const showSuggestions = messages.length === 1 && !isTyping;
   const lastMessage = messages[messages.length - 1];
   const showTyping = isTyping && lastMessage?.role !== "assistant";
@@ -211,6 +241,27 @@ export default function ChatScreen() {
             </Text>
           </View>
         </View>
+
+        {session ? (
+          <HStack space="sm" className="items-center">
+            <View
+              className="h-8 w-8 items-center justify-center rounded-full bg-muted"
+              accessibilityLabel={user?.email ?? "Signed-in user"}
+            >
+              <Text className="text-xs font-semibold text-foreground">
+                {userInitial}
+              </Text>
+            </View>
+            <Button
+              variant="ghost"
+              size="icon"
+              accessibilityLabel="Sign out"
+              onPress={handleSignOut}
+            >
+              <LogOut size={18} color={muted} />
+            </Button>
+          </HStack>
+        ) : null}
       </View>
 
       <KeyboardAvoidingView
@@ -348,6 +399,67 @@ export default function ChatScreen() {
           </Text>
         </View>
       </KeyboardAvoidingView>
+
+      {!session ? (
+        <View
+          className="absolute inset-0 z-30 items-center justify-center px-5"
+          accessibilityViewIsModal
+          onStartShouldSetResponder={() => true}
+        >
+          <View
+            className="absolute inset-0"
+            style={{
+              backgroundColor: theme.colors.background,
+              opacity: 0.92,
+            }}
+            pointerEvents="none"
+          />
+          <Card
+            className="w-full max-w-md gap-5 rounded-2xl"
+            style={{
+              backgroundColor: theme.colors.card,
+              borderColor: theme.colors.border,
+            }}
+          >
+            <VStack space="sm" className="items-center">
+              <View className="h-16 w-16 items-center justify-center rounded-full bg-trust-tint">
+                <ShieldCheck size={28} color={theme.colors.primary} />
+              </View>
+              <Heading size="xl" className="text-center text-foreground">
+                Sign in to use the AI chatbot
+              </Heading>
+              <Text className="max-w-sm text-center text-sm leading-5 text-muted-foreground">
+                Browsing schemes stays free. Sign in to ask Aadhikar AI about
+                eligibility, benefits, and how to apply.
+              </Text>
+            </VStack>
+
+            {isAuthLoading ? (
+              <HStack space="sm" className="items-center justify-center">
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+                <Text className="text-sm text-muted-foreground">
+                  Checking your session...
+                </Text>
+              </HStack>
+            ) : (
+              <Button
+                className="min-h-12 rounded-xl"
+                onPress={() => router.push('/auth')}
+              >
+                <LogIn size={18} color={ON_PRIMARY} />
+                <ButtonText>Sign in</ButtonText>
+              </Button>
+            )}
+
+            <HStack space="sm" className="items-center justify-center">
+              <ShieldCheck size={14} color={muted} />
+              <Text className="text-xs text-muted-foreground">
+                Secure access with Supabase
+              </Text>
+            </HStack>
+          </Card>
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }

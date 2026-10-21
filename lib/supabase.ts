@@ -2,6 +2,7 @@ import 'react-native-url-polyfill/auto';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim() ?? '';
 const supabaseKey = (
@@ -30,7 +31,7 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
         storage: canPersistAuth ? AsyncStorage : undefined,
         autoRefreshToken: canPersistAuth,
         persistSession: canPersistAuth,
-        detectSessionInUrl: false,
+        detectSessionInUrl: canPersistAuth && Platform.OS === 'web',
       },
     })
   : null;

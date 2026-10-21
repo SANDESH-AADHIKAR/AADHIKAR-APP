@@ -30,6 +30,10 @@ export default function HomeScreen() {
   const { schemes, isLoading, isRefreshing, error, refetch } = useSchemes();
   const isBusy = isLoading || isRefreshing;
 
+  const openAI = () => {
+    router.push("/chat");
+  };
+
   return (
     <SafeAreaView
       edges={["top"]}
@@ -46,7 +50,7 @@ export default function HomeScreen() {
           <Logo />
           <Pressable
             accessibilityLabel="Open chat"
-            onPress={() => router.push("/chat")}
+            onPress={openAI}
             className="h-10 w-10 items-center justify-center rounded-full border border-border bg-card"
           >
             <Languages size={18} color={theme.colors.text} />
@@ -87,7 +91,7 @@ export default function HomeScreen() {
           </View>
 
           <Pressable
-            onPress={() => router.push("/chat")}
+            onPress={openAI}
             className="mt-1 flex-row items-center gap-2 self-start rounded-full bg-primary px-4 py-2.5"
           >
             <Text className="text-sm font-semibold text-primary-foreground">

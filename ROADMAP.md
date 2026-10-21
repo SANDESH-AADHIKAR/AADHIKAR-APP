@@ -84,14 +84,17 @@ Coupling notes:
 
 ### 2.3 Auth (#7)
 
-- [ ] Choose the auth method (email + password recommended for the hackathon).
-- [ ] Add an `AuthProvider` with session persistence.
-- [ ] Create sign-in and sign-up screens.
-- [ ] Restructure the root layout from `Slot` to a `Stack` with protected route groups.
-- [ ] Gate the chat/AI feature behind auth; keep browsing public.
-- [ ] Handle sign-out and session refresh.
-- [ ] Add auth form validation, loading, error and password visibility states.
+- [x] Choose the auth method: email + password with Supabase.
+- [x] Add an `AuthProvider` with session persistence and auth-state updates.
+- [x] Create a dedicated `/auth` screen with sign-in and create-account modes.
+- [x] Keep Home and Schemes public.
+- [x] Gate Chat with an in-tab sign-in overlay that opens the full-screen auth page; Home AI buttons lead into that flow.
+- [x] Handle sign-out and Supabase session refresh.
+- [x] Add auth form validation, loading, error, password visibility and email-confirmation states.
+- [ ] Optional: replace the current `Slot` + route guard with protected route groups if more private screens are added later.
 - [ ] Fix root navigation so `app/modal.tsx` and `+not-found.tsx` behave correctly if they are kept.
+
+> The Supabase project currently has email confirmation enabled. Confirm the email before signing in, or disable confirmation in Supabase Auth settings for a quicker demo.
 
 ### 2.4 Gemini Edge Function proxy (#7)
 
@@ -185,8 +188,8 @@ Coupling notes:
 ## Open decisions
 
 1. **Languages:** English + Hindi + Marathi — confirm.
-2. **Auth method:** email + password (simplest), magic link/OTP, or Google OAuth.
-3. **AI security:** Supabase Edge Function proxy (recommended) vs. client key for the demo.
+2. **Auth method:** email + password with Supabase — implemented in Phase 2.3.
+3. **AI security:** the demo currently gates the UI and uses the client key; the Supabase Edge Function proxy is the next hardening step.
 4. **Voice target:** web demo, native device, or both.
 5. **Scheme content translation:** UI + AI only for now, or translate all 50 scheme descriptions.
 6. **Onboarding fields:** confirm the five screens above or adjust.

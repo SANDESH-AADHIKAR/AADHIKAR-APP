@@ -2,6 +2,7 @@ import { Fab, FabIcon } from '@/components/ui/fab';
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { MoonIcon, SunIcon } from '@/components/ui/icon';
 import { appDarkTheme, appLightTheme } from '@/constants/theme';
+import { AuthProvider } from '@/providers/AuthProvider';
 import '@/global.css';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { ThemeProvider } from 'expo-router';
@@ -51,7 +52,9 @@ function RootLayoutNav() {
         <KeyboardProvider>
           <GluestackUIProvider mode={colorMode}>
             <StatusBar style={colorMode === 'dark' ? 'light' : 'dark'} />
-            <Slot />
+            <AuthProvider>
+              <Slot />
+            </AuthProvider>
             {pathname === '/' && (
               <Fab
                 onPress={() =>
