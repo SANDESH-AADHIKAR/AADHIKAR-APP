@@ -1,15 +1,22 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-
-import { CATEGORIES } from '@/constants/schemes';
-import type { SchemeInfo } from '@/constants/types';
-import { supabase, supabaseConfigError } from '@/lib/supabase';
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import { CATEGORIES } from "@/constants/schemes";
+import type { SchemeInfo } from "@/constants/types";
+import { supabase, supabaseConfigError } from "@/lib/supabase";
 
 const CATEGORY_ORDER: readonly string[] = CATEGORIES.filter(
-  (category) => category !== 'All'
+  (category) => category !== "All",
 );
 
-type SchemeRow = SchemeInfo & {
+// Include the new translation columns in our raw type
+type RawSchemeRow = SchemeInfo & {
   sort_order?: number | null;
+  name_hi?: string | null;
+  name_mr?: string | null;
+  benefits_hi?: string | null;
+  benefits_mr?: string | null;
+  eligibility_hi?: string | null;
+  eligibility_mr?: string | null;
 };
 
 function categoryRank(category: string) {
@@ -17,11 +24,11 @@ function categoryRank(category: string) {
   return index === -1 ? CATEGORY_ORDER.length : index;
 }
 
-function compareSchemes(a: SchemeRow, b: SchemeRow) {
-  const categoryDifference = categoryRank(a.category) - categoryRank(b.category);
+function compareSchemes(a: RawSchemeRow, b: RawSchemeRow) {
+  const categoryDifference =
+    categoryRank(a.category) - categoryRank(b.category);
   if (categoryDifference !== 0) return categoryDifference;
 
-  // Fall back to the name when sort_order was not set in the database.
   const orderDifference = (a.sort_order ?? 0) - (b.sort_order ?? 0);
   if (orderDifference !== 0) return orderDifference;
 
@@ -29,7 +36,8 @@ function compareSchemes(a: SchemeRow, b: SchemeRow) {
 }
 
 export function useSchemes() {
-  const [schemes, setSchemes] = useState<SchemeInfo[]>([]);
+  const { i18n } = useTranslation(); // Listen for language changes
+  const [rawSchemes, setRawSchemes] = useState<RawSchemeRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,25 +69,28 @@ export function useSchemes() {
     setError(null);
 
     try {
+      // Fetch the English columns PLUS the new Hindi and Marathi columns
       const { data, error: queryError } = await supabase
-        .from('schemes')
+        .from("schemes")
         .select(
-          'id, category, name, benefits, eligibility, link, sort_order, is_active'
+          "id, category, name, name_hi, name_mr, benefits, benefits_hi, benefits_mr, eligibility, eligibility_hi, eligibility_mr, link, sort_order, is_active",
         )
-        .eq('is_active', true);
+        .eq("is_active", true);
 
       if (!mountedRef.current || requestId !== requestIdRef.current) return;
 
       if (queryError) {
         setError(queryError.message);
       } else {
-        const rows = ((data ?? []) as SchemeRow[]).slice().sort(compareSchemes);
-        setSchemes(rows);
+        const rows = ((data ?? []) as RawSchemeRow[])
+          .slice()
+          .sort(compareSchemes);
+        setRawSchemes(rows);
       }
     } catch (caught) {
       if (!mountedRef.current || requestId !== requestIdRef.current) return;
       setError(
-        caught instanceof Error ? caught.message : 'Could not load schemes.'
+        caught instanceof Error ? caught.message : "Could not load schemes.",
       );
     } finally {
       if (mountedRef.current && requestId === requestIdRef.current) {
@@ -95,8 +106,48 @@ export function useSchemes() {
 
   const refetch = useCallback(() => load(true), [load]);
 
+  // Dynamically map the raw database rows to the current language
+  // This runs instantly whenever i18n.language changes without needing to hit the database again
+  const localizedSchemes = useMemo<SchemeInfo[]>(() => {
+    const lang = i18n.language; // 'en', 'hi', or 'mr'
+
+    return rawSchemes.map((row) => {
+      // Pick the correct string, falling back to English if the translation is missing
+      const name =
+        lang === "hi" && row.name_hi
+          ? row.name_hi
+          : lang === "mr" && row.name_mr
+            ? row.name_mr
+            : row.name;
+
+      const benefits =
+        lang === "hi" && row.benefits_hi
+          ? row.benefits_hi
+          : lang === "mr" && row.benefits_mr
+            ? row.benefits_mr
+            : row.benefits;
+
+      const eligibility =
+        lang === "hi" && row.eligibility_hi
+          ? row.eligibility_hi
+          : lang === "mr" && row.eligibility_mr
+            ? row.eligibility_mr
+            : row.eligibility;
+
+      return {
+        id: row.id,
+        category: row.category,
+        link: row.link,
+        is_active: row.is_active,
+        name,
+        benefits,
+        eligibility,
+      };
+    });
+  }, [rawSchemes, i18n.language]);
+
   return {
-    schemes,
+    schemes: localizedSchemes, // Return the mapped schemes to the app
     isLoading,
     isRefreshing,
     error,
