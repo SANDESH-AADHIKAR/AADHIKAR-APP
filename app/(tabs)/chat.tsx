@@ -1,5 +1,12 @@
 import Logo from "@/assets/icons/Logo";
 import { MarkdownMessage } from "@/components/MarkdownMessage";
+import {
+  Actionsheet,
+  ActionsheetBackdrop,
+  ActionsheetContent,
+  ActionsheetDragIndicator,
+  ActionsheetDragIndicatorWrapper,
+} from "@/components/ui/actionsheet";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Heading } from "@/components/ui/heading";
@@ -16,8 +23,18 @@ import {
   streamAadhikar,
 } from "@/lib/gemini";
 import { useAuth } from "@/providers/AuthProvider";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter, useTheme } from "expo-router";
-import { LogIn, LogOut, Send, ShieldCheck } from "lucide-react-native";
+import {
+  LogIn,
+  LogOut,
+  Menu,
+  MessageSquare,
+  Plus,
+  Send,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react-native";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -38,6 +55,13 @@ type ChatMessage = {
   role: ChatRole;
   text: string;
   isError?: boolean;
+};
+
+type ChatSession = {
+  id: string;
+  title: string;
+  updatedAt: number;
+  messages: ChatMessage[];
 };
 
 const MIN_INPUT_HEIGHT = 24;
@@ -71,7 +95,12 @@ export default function ChatScreen() {
     [t],
   );
 
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
+  const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
   const [input, setInput] = useState("");
   const [inputHeight, setInputHeight] = useState(MIN_INPUT_HEIGHT);
   const [isTyping, setIsTyping] = useState(false);
@@ -82,6 +111,57 @@ export default function ChatScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const activeRequest = useRef<AbortController | null>(null);
   const busyRef = useRef(false);
+
+  // 1. LOAD ALL SESSIONS ON MOUNT
+  useEffect(() => {
+    const loadHistory = async () => {
+      if (!user?.id) {
+        setSessions([]);
+        setIsHistoryLoaded(true);
+        return;
+      }
+
+      try {
+        const stored = await AsyncStorage.getItem(`chat_sessions_${user.id}`);
+        if (stored) {
+          const parsed = JSON.parse(stored) as ChatSession[];
+          setSessions(parsed.sort((a, b) => b.updatedAt - a.updatedAt));
+        }
+      } catch (error) {
+        console.error("Failed to load chat history:", error);
+      } finally {
+        setIsHistoryLoaded(true);
+        // Start fresh every time the app opens
+        setActiveSessionId(null);
+        setMessages([WELCOME_MESSAGE]);
+      }
+    };
+
+    if (!isAuthLoading) {
+      loadHistory();
+    }
+  }, [user?.id, isAuthLoading, WELCOME_MESSAGE]);
+
+  // 2. AUTO-SAVE SESSION WHEN STREAM FINISHES
+  useEffect(() => {
+    if (!isHistoryLoaded || !user?.id || isTyping || !activeSessionId) return;
+
+    const cleanMessages = messages.filter((m) => !m.isError);
+    if (cleanMessages.length <= 1) return; // Don't save empty chats
+
+    setSessions((prev) => {
+      const updated = prev.map((s) =>
+        s.id === activeSessionId
+          ? { ...s, updatedAt: Date.now(), messages: cleanMessages }
+          : s,
+      );
+      AsyncStorage.setItem(
+        `chat_sessions_${user.id}`,
+        JSON.stringify(updated),
+      ).catch(console.error);
+      return updated;
+    });
+  }, [isTyping, messages, activeSessionId, isHistoryLoaded, user?.id]);
 
   useEffect(() => {
     return () => {
@@ -112,7 +192,7 @@ export default function ChatScreen() {
       scrollRef.current?.scrollToEnd({ animated: false });
     });
     return () => cancelAnimationFrame(frame);
-  }, [inputHeight]);
+  }, [inputHeight, messages.length]);
 
   const resizeInput = (contentHeight: number) => {
     const nextHeight = Math.min(
@@ -124,12 +204,60 @@ export default function ChatScreen() {
     );
   };
 
+  const handleNewChat = () => {
+    activeRequest.current?.abort();
+    busyRef.current = false;
+    setIsTyping(false);
+    setActiveSessionId(null);
+    setMessages([WELCOME_MESSAGE]);
+    setIsHistoryOpen(false);
+  };
+
+  const loadSession = (id: string) => {
+    const selected = sessions.find((s) => s.id === id);
+    if (selected) {
+      activeRequest.current?.abort();
+      busyRef.current = false;
+      setIsTyping(false);
+      setActiveSessionId(id);
+      setMessages(selected.messages);
+      setIsHistoryOpen(false);
+    }
+  };
+
+  const deleteSession = async (id: string) => {
+    const updatedSessions = sessions.filter((s) => s.id !== id);
+    setSessions(updatedSessions);
+    if (user?.id) {
+      await AsyncStorage.setItem(
+        `chat_sessions_${user.id}`,
+        JSON.stringify(updatedSessions),
+      );
+    }
+    // If we deleted the active chat, reset to a new chat
+    if (activeSessionId === id) {
+      handleNewChat();
+    }
+  };
+
   const sendMessage = async (rawText: string) => {
     const text = rawText.trim();
     if (!text || busyRef.current) return;
     if (!session) return;
 
     busyRef.current = true;
+
+    // Create session ID if this is a brand new chat
+    let currentSessionId = activeSessionId;
+    if (!currentSessionId) {
+      currentSessionId = `session-${Date.now()}`;
+      setActiveSessionId(currentSessionId);
+      const title = text.slice(0, 30) + (text.length > 30 ? "..." : "");
+      setSessions((prev) => [
+        { id: currentSessionId, title, updatedAt: Date.now(), messages: [] },
+        ...prev,
+      ]);
+    }
 
     const history = messages
       .filter(
@@ -148,7 +276,6 @@ export default function ChatScreen() {
     activeRequest.current = controller;
     let assistantId: string | null = null;
 
-    // Inject language directive for Gemini
     const langNames: Record<string, string> = {
       en: "English",
       hi: "Hindi",
@@ -217,10 +344,20 @@ export default function ChatScreen() {
     void signOut();
   };
 
-  const userInitial = user?.email?.trim().charAt(0).toUpperCase() || "U";
   const showSuggestions = messages.length === 1 && !isTyping;
   const lastMessage = messages[messages.length - 1];
   const showTyping = isTyping && lastMessage?.role !== "assistant";
+
+  if (!isHistoryLoaded && session) {
+    return (
+      <View
+        className="flex-1 items-center justify-center bg-background"
+        style={{ backgroundColor: theme.colors.background }}
+      >
+        <ActivityIndicator size="small" color={theme.colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView
@@ -228,19 +365,28 @@ export default function ChatScreen() {
       className="flex-1 bg-background"
       style={{ flex: 1 }}
     >
-      <View className="flex-row items-center gap-3 border-b border-border px-5 py-3">
-        <View className="h-10 w-10 items-center justify-center rounded-full border border-border bg-white">
-          <Logo size={30} />
-        </View>
+      <View className="flex-row items-center gap-3 border-b border-border px-4 py-3">
+        {session ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            onPress={() => setIsHistoryOpen(true)}
+          >
+            <Menu size={22} color={theme.colors.text} />
+          </Button>
+        ) : (
+          <View className="h-10 w-10 items-center justify-center rounded-full border border-border bg-white">
+            <Logo size={30} />
+          </View>
+        )}
+
         <View className="flex-1 gap-0.5">
           <Text className="text-base font-semibold text-foreground">
             Aadhikar AI
           </Text>
           <View className="flex-row items-center gap-1.5">
             <View
-              className={`h-1.5 w-1.5 rounded-full ${
-                hasGeminiKey ? "bg-success" : "bg-warning"
-              }`}
+              className={`h-1.5 w-1.5 rounded-full ${hasGeminiKey ? "bg-success" : "bg-warning"}`}
             />
             <Text className="text-xs text-muted-foreground">
               {hasGeminiKey
@@ -252,27 +398,94 @@ export default function ChatScreen() {
 
         {session ? (
           <HStack space="sm" className="items-center">
-            <View
-              className="h-8 w-8 items-center justify-center rounded-full bg-muted"
-              accessibilityLabel={
-                user?.email ?? t("chat_signed_in_user", "Signed-in user")
-              }
+            <Button
+              variant="ghost"
+              size="icon"
+              accessibilityLabel={t("chat_new", "New Chat")}
+              onPress={handleNewChat}
             >
-              <Text className="text-xs font-semibold text-foreground">
-                {userInitial}
-              </Text>
-            </View>
+              <Plus size={22} color={theme.colors.text} />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
               accessibilityLabel={t("chat_sign_out", "Sign out")}
               onPress={handleSignOut}
             >
-              <LogOut size={18} color={muted} />
+              <LogOut size={20} color={muted} />
             </Button>
           </HStack>
         ) : null}
       </View>
+
+      {/* CHAT HISTORY ACTIONSHEET */}
+      <Actionsheet
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+      >
+        <ActionsheetBackdrop />
+        <ActionsheetContent className="h-[75%] max-h-[75%] bg-card pb-10">
+          <ActionsheetDragIndicatorWrapper>
+            <ActionsheetDragIndicator />
+          </ActionsheetDragIndicatorWrapper>
+          <VStack className="w-full px-5 py-4 flex-1">
+            <HStack className="items-center justify-between mb-4">
+              <Heading size="lg" className="text-foreground">
+                {t("chat_history_title", "Chat History")}
+              </Heading>
+              <Button
+                variant="outline"
+                size="sm"
+                onPress={handleNewChat}
+                className="rounded-full"
+              >
+                <Plus size={16} color={theme.colors.text} className="mr-1" />
+                <ButtonText>{t("chat_new", "New Chat")}</ButtonText>
+              </Button>
+            </HStack>
+
+            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+              {sessions.length === 0 ? (
+                <View className="items-center py-10 opacity-60">
+                  <MessageSquare size={32} color={muted} className="mb-2" />
+                  <Text className="text-muted-foreground">
+                    {t("chat_no_history", "No past conversations.")}
+                  </Text>
+                </View>
+              ) : (
+                sessions.map((session) => (
+                  <HStack
+                    key={session.id}
+                    className="w-full items-center justify-between py-4 border-b border-border"
+                  >
+                    <Pressable
+                      onPress={() => loadSession(session.id)}
+                      className="flex-1 pr-4"
+                    >
+                      <Text
+                        className={`text-sm font-medium ${activeSessionId === session.id ? "text-primary" : "text-foreground"}`}
+                        numberOfLines={1}
+                      >
+                        {session.title}
+                      </Text>
+                      <Text className="text-xs text-muted-foreground mt-0.5">
+                        {new Date(session.updatedAt).toLocaleDateString()}
+                      </Text>
+                    </Pressable>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onPress={() => deleteSession(session.id)}
+                    >
+                      <Trash2 size={18} color={theme.colors.destructive} />
+                    </Button>
+                  </HStack>
+                ))
+              )}
+            </ScrollView>
+          </VStack>
+        </ActionsheetContent>
+      </Actionsheet>
 
       <KeyboardAvoidingView
         automaticOffset
@@ -300,10 +513,6 @@ export default function ChatScreen() {
             scrollRef.current?.scrollToEnd({ animated: true })
           }
         >
-          <Text className="self-center text-xs text-muted-foreground">
-            {t("chat_today", "Today")}
-          </Text>
-
           {messages.map((message) => {
             const isUser = message.role === "user";
             const isError = message.isError === true;
@@ -311,26 +520,14 @@ export default function ChatScreen() {
             return (
               <View
                 key={message.id}
-                className={`max-w-[85%] gap-1 ${
-                  isUser ? "items-end self-end" : "items-start self-start"
-                }`}
+                className={`max-w-[85%] gap-1 ${isUser ? "items-end self-end" : "items-start self-start"}`}
               >
                 <View
-                  className={`rounded-2xl px-5 py-3.5 ${
-                    isUser
-                      ? "rounded-br-md bg-chat-user"
-                      : isError
-                        ? "rounded-bl-md border border-destructive/40 bg-destructive/10"
-                        : "rounded-bl-md bg-chat-assistant"
-                  }`}
+                  className={`rounded-2xl px-5 py-3.5 ${isUser ? "rounded-br-md bg-chat-user" : isError ? "rounded-bl-md border border-destructive/40 bg-destructive/10" : "rounded-bl-md bg-chat-assistant"}`}
                 >
                   {isUser || isError ? (
                     <Text
-                      className={`text-sm leading-5 ${
-                        isUser
-                          ? "text-chat-user-foreground"
-                          : "text-destructive"
-                      }`}
+                      className={`text-sm leading-5 ${isUser ? "text-chat-user-foreground" : "text-destructive"}`}
                     >
                       {message.text}
                     </Text>
@@ -393,9 +590,7 @@ export default function ChatScreen() {
               accessibilityLabel={t("chat_send_msg", "Send message")}
               onPress={() => sendMessage(input)}
               disabled={!input.trim() || isTyping}
-              className={`h-12 w-12 items-center justify-center rounded-2xl ${
-                input.trim() && !isTyping ? "bg-primary" : "bg-secondary"
-              }`}
+              className={`h-12 w-12 items-center justify-center rounded-2xl ${input.trim() && !isTyping ? "bg-primary" : "bg-secondary"}`}
             >
               <Send
                 size={18}
@@ -403,7 +598,6 @@ export default function ChatScreen() {
               />
             </Pressable>
           </View>
-
           <Text className="mt-2 text-center text-xs text-muted-foreground">
             {t(
               "chat_disclaimer",
@@ -421,10 +615,7 @@ export default function ChatScreen() {
         >
           <View
             className="absolute inset-0"
-            style={{
-              backgroundColor: theme.colors.background,
-              opacity: 0.92,
-            }}
+            style={{ backgroundColor: theme.colors.background, opacity: 0.92 }}
             pointerEvents="none"
           />
           <Card
@@ -465,7 +656,6 @@ export default function ChatScreen() {
                 <ButtonText>{t("chat_signin_btn", "Sign in")}</ButtonText>
               </Button>
             )}
-
             <HStack space="sm" className="items-center justify-center">
               <ShieldCheck size={14} color={muted} />
               <Text className="text-xs text-muted-foreground">
