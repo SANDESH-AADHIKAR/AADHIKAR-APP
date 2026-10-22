@@ -1,21 +1,27 @@
-import { SchemeCard } from '@/components/SchemeCard';
-import { Text } from '@/components/ui/text';
-import { Input, InputField, InputSlot } from '@/components/ui/input';
-import { Pressable } from '@/components/ui/pressable';
-import { CATEGORIES } from '@/constants/schemes';
-import { ON_PRIMARY, mutedColor } from '@/constants/theme';
-import { useSchemes } from '@/hooks/useSchemes';
-import { useTheme } from 'expo-router';
-import { Search, SlidersHorizontal } from 'lucide-react-native';
-import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, SectionList, ScrollView, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SchemeCard } from "@/components/SchemeCard";
+import { Text } from "@/components/ui/text";
+import { Input, InputField, InputSlot } from "@/components/ui/input";
+import { Pressable } from "@/components/ui/pressable";
+import { CATEGORIES } from "@/constants/schemes";
+import { ON_PRIMARY, mutedColor } from "@/constants/theme";
+import { useSchemes } from "@/hooks/useSchemes";
+import { useTheme } from "expo-router";
+import { Search, SlidersHorizontal } from "lucide-react-native";
+import React, { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ActivityIndicator, SectionList, ScrollView, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SchemesScreen() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const muted = mutedColor(theme.dark);
-  const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('All');
+  const [query, setQuery] = useState("");
+
+  // Define "All" using translation
+  const ALL_CATEGORY = t("category_all", "All");
+  const [category, setCategory] = useState(ALL_CATEGORY);
+
   const { schemes, isLoading, isRefreshing, error, refetch } = useSchemes();
   const isBusy = isLoading || isRefreshing;
 
@@ -23,11 +29,12 @@ export default function SchemesScreen() {
     () =>
       Array.from(
         new Set<string>([
+          ALL_CATEGORY,
           ...CATEGORIES,
           ...schemes.map((scheme) => scheme.category),
-        ])
+        ]),
       ),
-    [schemes]
+    [schemes, ALL_CATEGORY],
   );
 
   const filteredSchemes = useMemo(() => {
@@ -35,7 +42,7 @@ export default function SchemesScreen() {
 
     return schemes.filter((scheme) => {
       const matchesCategory =
-        category === 'All' || scheme.category === category;
+        category === ALL_CATEGORY || scheme.category === category;
       const matchesSearch =
         !search ||
         `${scheme.name} ${scheme.benefits} ${scheme.eligibility} ${scheme.category}`
@@ -44,7 +51,7 @@ export default function SchemesScreen() {
 
       return matchesCategory && matchesSearch;
     });
-  }, [category, query, schemes]);
+  }, [category, query, schemes, ALL_CATEGORY]);
 
   const sections = useMemo(() => {
     const grouped = new Map<string, typeof filteredSchemes>();
@@ -60,7 +67,7 @@ export default function SchemesScreen() {
 
   return (
     <SafeAreaView
-      edges={['top']}
+      edges={["top"]}
       className="flex-1 bg-background"
       style={{ flex: 1 }}
     >
@@ -89,10 +96,13 @@ export default function SchemesScreen() {
           <View className="gap-4 pb-1">
             <View className="gap-1">
               <Text className="text-2xl font-bold tracking-tight text-foreground">
-                Schemes
+                {t("schemes_title", "Schemes")}
               </Text>
               <Text className="text-sm text-muted-foreground">
-                Government benefits you may be eligible for.
+                {t(
+                  "schemes_subtitle",
+                  "Government benefits you may be eligible for.",
+                )}
               </Text>
             </View>
 
@@ -103,7 +113,10 @@ export default function SchemesScreen() {
               <InputField
                 value={query}
                 onChangeText={setQuery}
-                placeholder="Search schemes, categories..."
+                placeholder={t(
+                  "schemes_search_ph",
+                  "Search schemes, categories...",
+                )}
                 returnKeyType="search"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -124,11 +137,11 @@ export default function SchemesScreen() {
                     onPress={() => setCategory(item)}
                     className={`flex-row items-center gap-1.5 rounded-full border px-3.5 py-2 ${
                       isActive
-                        ? 'border-primary bg-primary'
-                        : 'border-border bg-card'
+                        ? "border-primary bg-primary"
+                        : "border-border bg-card"
                     }`}
                   >
-                    {item === 'All' ? (
+                    {item === ALL_CATEGORY ? (
                       <SlidersHorizontal
                         size={12}
                         color={isActive ? ON_PRIMARY : muted}
@@ -137,8 +150,8 @@ export default function SchemesScreen() {
                     <Text
                       className={`text-xs font-medium ${
                         isActive
-                          ? 'text-primary-foreground'
-                          : 'text-muted-foreground'
+                          ? "text-primary-foreground"
+                          : "text-muted-foreground"
                       }`}
                     >
                       {item}
@@ -150,8 +163,11 @@ export default function SchemesScreen() {
 
             {!isBusy && !error ? (
               <Text className="text-xs text-muted-foreground">
-                {filteredSchemes.length}{' '}
-                {filteredSchemes.length === 1 ? 'scheme' : 'schemes'} found
+                {filteredSchemes.length}{" "}
+                {filteredSchemes.length === 1
+                  ? t("scheme_single", "scheme")
+                  : t("scheme_plural", "schemes")}{" "}
+                {t("found", "found")}
               </Text>
             ) : null}
           </View>
@@ -161,7 +177,7 @@ export default function SchemesScreen() {
             <View className="items-center gap-2 py-16">
               <ActivityIndicator color={theme.colors.primary} />
               <Text className="text-sm text-muted-foreground">
-                Loading schemes...
+                {t("schemes_loading", "Loading schemes...")}
               </Text>
             </View>
           ) : error ? (
@@ -171,23 +187,26 @@ export default function SchemesScreen() {
               className="items-center gap-2 py-16"
             >
               <Text className="text-base font-semibold text-foreground">
-                Could not load schemes
+                {t("schemes_err_load", "Could not load schemes")}
               </Text>
               <Text className="text-center text-sm text-muted-foreground">
                 {error}
               </Text>
               <Text className="text-sm font-medium text-primary">
-                Tap to retry
+                {t("schemes_retry", "Tap to retry")}
               </Text>
             </Pressable>
           ) : (
             <View className="items-center gap-2 py-16">
               <Search size={24} color={muted} />
               <Text className="text-base font-semibold text-foreground">
-                No schemes found
+                {t("schemes_none", "No schemes found")}
               </Text>
               <Text className="text-center text-sm text-muted-foreground">
-                Try a different search term or category.
+                {t(
+                  "schemes_none_desc",
+                  "Try a different search term or category.",
+                )}
               </Text>
             </View>
           )

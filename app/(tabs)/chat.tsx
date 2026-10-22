@@ -19,6 +19,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { useRouter, useTheme } from "expo-router";
 import { LogIn, LogOut, Send, ShieldCheck } from "lucide-react-native";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Keyboard,
@@ -36,41 +37,47 @@ type ChatMessage = {
   id: string;
   role: ChatRole;
   text: string;
-  /** Error bubbles are shown to the user but never sent to the model. */
   isError?: boolean;
 };
 
-const WELCOME_MESSAGE: ChatMessage = {
-  id: "welcome",
-  role: "assistant",
-  text: "Namaste! I'm Aadhikar AI. Tell me a little about yourself — your state, age, occupation or family situation — and I'll help you find government schemes you may be eligible for.",
-};
-
-const SUGGESTIONS = [
-  "Which schemes am I eligible for?",
-  "What documents do I need?",
-  "How do I apply for PM-KISAN?",
-];
-
-/** TextInput content height (excluding the wrapper's vertical padding). */
 const MIN_INPUT_HEIGHT = 24;
 const MAX_INPUT_HEIGHT = 88;
 
 export default function ChatScreen() {
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const router = useRouter();
   const muted = mutedColor(theme.dark);
   const { session, user, isLoading: isAuthLoading, signOut } = useAuth();
 
+  const WELCOME_MESSAGE = useMemo<ChatMessage>(
+    () => ({
+      id: "welcome",
+      role: "assistant",
+      text: t(
+        "chat_welcome",
+        "Namaste! I'm Aadhikar AI. Tell me a little about yourself — your state, age, occupation or family situation — and I'll help you find government schemes you may be eligible for.",
+      ),
+    }),
+    [t],
+  );
+
+  const SUGGESTIONS = useMemo(
+    () => [
+      t("suggest_1", "Which schemes am I eligible for?"),
+      t("suggest_2", "What documents do I need?"),
+      t("suggest_3", "How do I apply for PM-KISAN?"),
+    ],
+    [t],
+  );
+
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState("");
   const [inputHeight, setInputHeight] = useState(MIN_INPUT_HEIGHT);
   const [isTyping, setIsTyping] = useState(false);
+
   const { schemes } = useSchemes();
-  const schemeContext = useMemo(
-    () => buildSchemeContext(schemes),
-    [schemes]
-  );
+  const schemeContext = useMemo(() => buildSchemeContext(schemes), [schemes]);
 
   const scrollRef = useRef<ScrollView>(null);
   const activeRequest = useRef<AbortController | null>(null);
@@ -91,50 +98,42 @@ export default function ChatScreen() {
     }
   }, [isAuthLoading, session]);
 
-  // Keep the latest messages visible when the keyboard opens.
   useEffect(() => {
     const subscription = Keyboard.addListener("keyboardDidShow", () => {
       requestAnimationFrame(() =>
-        scrollRef.current?.scrollToEnd({ animated: true })
+        scrollRef.current?.scrollToEnd({ animated: true }),
       );
     });
-
     return () => subscription.remove();
   }, []);
 
-  // A growing composer reduces the message area, so keep the bottom in view.
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
       scrollRef.current?.scrollToEnd({ animated: false });
     });
-
     return () => cancelAnimationFrame(frame);
   }, [inputHeight]);
 
   const resizeInput = (contentHeight: number) => {
     const nextHeight = Math.min(
       MAX_INPUT_HEIGHT,
-      Math.max(MIN_INPUT_HEIGHT, contentHeight)
+      Math.max(MIN_INPUT_HEIGHT, contentHeight),
     );
-
     setInputHeight((current) =>
-      Math.abs(current - nextHeight) > 0.5 ? nextHeight : current
+      Math.abs(current - nextHeight) > 0.5 ? nextHeight : current,
     );
   };
 
   const sendMessage = async (rawText: string) => {
     const text = rawText.trim();
     if (!text || busyRef.current) return;
-
-    if (!session) {
-      return;
-    }
+    if (!session) return;
 
     busyRef.current = true;
 
     const history = messages
       .filter(
-        (message) => message.id !== WELCOME_MESSAGE.id && !message.isError
+        (message) => message.id !== WELCOME_MESSAGE.id && !message.isError,
       )
       .map((message) => ({ role: message.role, text: message.text }));
 
@@ -148,6 +147,15 @@ export default function ChatScreen() {
     const controller = new AbortController();
     activeRequest.current = controller;
     let assistantId: string | null = null;
+
+    // Inject language directive for Gemini
+    const langNames: Record<string, string> = {
+      en: "English",
+      hi: "Hindi",
+      mr: "Marathi",
+    };
+    const currentLangName = langNames[i18n.language] || "English";
+    const localizedContext = `${schemeContext}\n\nIMPORTANT INSTRUCTION: You must reply to the user entirely in ${currentLangName}. Current language context: ${currentLangName}.`;
 
     try {
       await streamAadhikar(
@@ -166,12 +174,12 @@ export default function ChatScreen() {
               current.map((message) =>
                 message.id === id
                   ? { ...message, text: message.text + delta }
-                  : message
-              )
+                  : message,
+              ),
             );
           }
         },
-        { signal: controller.signal, schemeContext }
+        { signal: controller.signal, schemeContext: localizedContext },
       );
 
       if (assistantId !== null) {
@@ -180,8 +188,8 @@ export default function ChatScreen() {
           current.map((message) =>
             message.id === id
               ? { ...message, text: message.text.trim() }
-              : message
-          )
+              : message,
+          ),
         );
       }
     } catch (error) {
@@ -205,12 +213,11 @@ export default function ChatScreen() {
 
   const handleSignOut = () => {
     activeRequest.current?.abort();
-    router.replace('/');
+    router.replace("/");
     void signOut();
   };
 
-  const userInitial = user?.email?.trim().charAt(0).toUpperCase() || 'U';
-
+  const userInitial = user?.email?.trim().charAt(0).toUpperCase() || "U";
   const showSuggestions = messages.length === 1 && !isTyping;
   const lastMessage = messages[messages.length - 1];
   const showTyping = isTyping && lastMessage?.role !== "assistant";
@@ -237,8 +244,8 @@ export default function ChatScreen() {
             />
             <Text className="text-xs text-muted-foreground">
               {hasGeminiKey
-                ? "Online · Powered by Gemini"
-                : "Offline · Gemini API key needed"}
+                ? t("chat_online", "Online · Powered by Gemini")
+                : t("chat_offline", "Offline · Gemini API key needed")}
             </Text>
           </View>
         </View>
@@ -247,7 +254,9 @@ export default function ChatScreen() {
           <HStack space="sm" className="items-center">
             <View
               className="h-8 w-8 items-center justify-center rounded-full bg-muted"
-              accessibilityLabel={user?.email ?? "Signed-in user"}
+              accessibilityLabel={
+                user?.email ?? t("chat_signed_in_user", "Signed-in user")
+              }
             >
               <Text className="text-xs font-semibold text-foreground">
                 {userInitial}
@@ -256,7 +265,7 @@ export default function ChatScreen() {
             <Button
               variant="ghost"
               size="icon"
-              accessibilityLabel="Sign out"
+              accessibilityLabel={t("chat_sign_out", "Sign out")}
               onPress={handleSignOut}
             >
               <LogOut size={18} color={muted} />
@@ -292,7 +301,7 @@ export default function ChatScreen() {
           }
         >
           <Text className="self-center text-xs text-muted-foreground">
-            Today
+            {t("chat_today", "Today")}
           </Text>
 
           {messages.map((message) => {
@@ -330,7 +339,7 @@ export default function ChatScreen() {
                   )}
                 </View>
                 <Text className="px-1 text-xs text-muted-foreground">
-                  {isUser ? "You" : "Aadhikar AI"}
+                  {isUser ? t("chat_you", "You") : "Aadhikar AI"}
                 </Text>
               </View>
             );
@@ -355,7 +364,7 @@ export default function ChatScreen() {
           {showTyping ? (
             <View className="self-start rounded-2xl rounded-bl-md bg-chat-assistant px-5 py-3.5">
               <Text className="text-sm text-chat-assistant-foreground">
-                Aadhikar AI is typing...
+                {t("chat_typing", "Aadhikar AI is typing...")}
               </Text>
             </View>
           ) : null}
@@ -367,7 +376,7 @@ export default function ChatScreen() {
               <TextInput
                 value={input}
                 onChangeText={setInput}
-                placeholder="Ask about any scheme..."
+                placeholder={t("chat_input_ph", "Ask about any scheme...")}
                 placeholderTextColor={muted}
                 className="text-sm text-foreground"
                 style={{ height: inputHeight, paddingVertical: 0 }}
@@ -381,7 +390,7 @@ export default function ChatScreen() {
             </View>
 
             <Pressable
-              accessibilityLabel="Send message"
+              accessibilityLabel={t("chat_send_msg", "Send message")}
               onPress={() => sendMessage(input)}
               disabled={!input.trim() || isTyping}
               className={`h-12 w-12 items-center justify-center rounded-2xl ${
@@ -396,7 +405,10 @@ export default function ChatScreen() {
           </View>
 
           <Text className="mt-2 text-center text-xs text-muted-foreground">
-            Aadhikar AI can make mistakes. Verify details with official sources.
+            {t(
+              "chat_disclaimer",
+              "Aadhikar AI can make mistakes. Verify details with official sources.",
+            )}
           </Text>
         </View>
       </KeyboardAvoidingView>
@@ -427,11 +439,13 @@ export default function ChatScreen() {
                 <ShieldCheck size={28} color={theme.colors.primary} />
               </View>
               <Heading size="xl" className="text-center text-foreground">
-                Sign in to use the AI chatbot
+                {t("chat_signin_title", "Sign in to use the AI chatbot")}
               </Heading>
               <Text className="max-w-sm text-center text-sm leading-5 text-muted-foreground">
-                Browsing schemes stays free. Sign in to ask Aadhikar AI about
-                eligibility, benefits, and how to apply.
+                {t(
+                  "chat_signin_desc",
+                  "Browsing schemes stays free. Sign in to ask Aadhikar AI about eligibility, benefits, and how to apply.",
+                )}
               </Text>
             </VStack>
 
@@ -439,23 +453,23 @@ export default function ChatScreen() {
               <HStack space="sm" className="items-center justify-center">
                 <ActivityIndicator size="small" color={theme.colors.primary} />
                 <Text className="text-sm text-muted-foreground">
-                  Checking your session...
+                  {t("chat_checking_session", "Checking your session...")}
                 </Text>
               </HStack>
             ) : (
               <Button
                 className="min-h-12 rounded-xl"
-                onPress={() => router.push('/auth')}
+                onPress={() => router.push("/auth")}
               >
                 <LogIn size={18} color={ON_PRIMARY} />
-                <ButtonText>Sign in</ButtonText>
+                <ButtonText>{t("chat_signin_btn", "Sign in")}</ButtonText>
               </Button>
             )}
 
             <HStack space="sm" className="items-center justify-center">
               <ShieldCheck size={14} color={muted} />
               <Text className="text-xs text-muted-foreground">
-                Secure access with Supabase
+                {t("chat_secure_access", "Secure access with Supabase")}
               </Text>
             </HStack>
           </Card>

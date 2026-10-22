@@ -1,5 +1,6 @@
 import Logo from "@/assets/icons/Logo";
 import { SchemeCard } from "@/components/SchemeCard";
+import { LanguagePicker } from "@/components/LanguagePicker";
 import { Pressable } from "@/components/ui/pressable";
 import { Text } from "@/components/ui/text";
 import {
@@ -13,15 +14,16 @@ import { useRouter, useTheme } from "expo-router";
 import {
   ArrowRight,
   ChevronRight,
-  Languages,
   Search,
   ShieldCheck,
   Sparkles,
 } from "lucide-react-native";
 import { ActivityIndicator, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 
 export default function HomeScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const theme = useTheme();
   const muted = mutedColor(theme.dark);
@@ -53,19 +55,16 @@ export default function HomeScreen() {
               Aadhikar AI
             </Text>
           </View>
-          <Pressable
-            accessibilityLabel="Open chat"
-            onPress={openAI}
-            className="h-10 w-10 items-center justify-center rounded-full border border-border bg-card"
-          >
-            <Languages size={18} color={theme.colors.text} />
-          </Pressable>
+
+          <LanguagePicker />
         </View>
 
         <View className="gap-1.5">
-          <Text className="text-sm text-muted-foreground">Namaste 👋</Text>
+          <Text className="text-sm text-muted-foreground">
+            {t("home_greeting", "Namaste 👋")}
+          </Text>
           <Text className="text-3xl font-bold tracking-tight text-foreground">
-            Find benefits you deserve.
+            {t("home_find_benefits", "Find benefits you deserve.")}
           </Text>
         </View>
 
@@ -76,7 +75,7 @@ export default function HomeScreen() {
         >
           <Search size={18} color={muted} />
           <Text className="text-sm text-muted-foreground">
-            Search schemes, benefits and more
+            {t("home_search_ph", "Search schemes, benefits and more")}
           </Text>
         </Pressable>
 
@@ -87,11 +86,13 @@ export default function HomeScreen() {
 
           <View className="gap-2">
             <Text className="text-xl font-bold text-trust-foreground">
-              Personalised scheme matches
+              {t("home_personalized", "Personalised scheme matches")}
             </Text>
             <Text className="text-sm leading-5 text-trust-foreground/70">
-              Answer a few questions and Aadhikar AI will find the schemes you
-              are eligible for.
+              {t(
+                "home_personalized_desc",
+                "Answer a few questions and Aadhikar AI will find the schemes you are eligible for.",
+              )}
             </Text>
           </View>
 
@@ -100,7 +101,7 @@ export default function HomeScreen() {
             className="mt-1 flex-row items-center gap-2 self-start rounded-full bg-primary px-4 py-2.5"
           >
             <Text className="text-sm font-semibold text-primary-foreground">
-              Ask Aadhikar AI
+              {t("home_ask_ai", "Ask Aadhikar AI")}
             </Text>
             <ArrowRight size={14} color={ON_PRIMARY} />
           </Pressable>
@@ -109,14 +110,14 @@ export default function HomeScreen() {
         <View className="gap-3">
           <View className="flex-row items-center justify-between">
             <Text className="text-lg font-semibold text-foreground">
-              Featured schemes
+              {t("home_featured", "Featured schemes")}
             </Text>
             <Pressable
               onPress={() => router.push("/schemes")}
               className="flex-row items-center gap-1"
             >
               <Text className="text-sm font-medium text-muted-foreground">
-                See all
+                {t("home_see_all", "See all")}
               </Text>
               <ChevronRight size={14} color={muted} />
             </Pressable>
@@ -126,7 +127,7 @@ export default function HomeScreen() {
             <View className="flex-row items-center justify-center gap-2 rounded-2xl border border-border bg-card p-5">
               <ActivityIndicator color={theme.colors.primary} />
               <Text className="text-sm text-muted-foreground">
-                Loading schemes...
+                {t("home_loading", "Loading schemes...")}
               </Text>
             </View>
           ) : error ? (
@@ -136,22 +137,22 @@ export default function HomeScreen() {
               className="items-center gap-1 rounded-2xl border border-border bg-card p-5"
             >
               <Text className="text-sm font-semibold text-foreground">
-                Could not load schemes
+                {t("home_err_load", "Could not load schemes")}
               </Text>
               <Text className="text-xs text-muted-foreground">
-                Tap to retry
+                {t("home_retry", "Tap to retry")}
               </Text>
             </Pressable>
           ) : schemes.length === 0 ? (
             <View className="items-center rounded-2xl border border-border bg-card p-5">
               <Text className="text-sm text-muted-foreground">
-                No schemes available yet.
+                {t("home_no_schemes", "No schemes available yet.")}
               </Text>
             </View>
           ) : (
-            schemes.slice(0, 2).map((scheme) => (
-              <SchemeCard key={scheme.id} scheme={scheme} />
-            ))
+            schemes
+              .slice(0, 2)
+              .map((scheme) => <SchemeCard key={scheme.id} scheme={scheme} />)
           )}
         </View>
 
@@ -161,10 +162,13 @@ export default function HomeScreen() {
           </View>
           <View className="flex-1 gap-0.5">
             <Text className="text-sm font-semibold text-foreground">
-              Private by design
+              {t("home_private", "Private by design")}
             </Text>
             <Text className="text-xs leading-4 text-muted-foreground">
-              Your documents and personal details stay on your device.
+              {t(
+                "home_private_desc",
+                "Your documents and personal details stay on your device.",
+              )}
             </Text>
           </View>
         </View>

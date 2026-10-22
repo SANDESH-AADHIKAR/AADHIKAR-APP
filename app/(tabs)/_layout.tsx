@@ -3,9 +3,11 @@ import { Tabs } from "expo-router/js-tabs";
 import { useTheme } from "expo-router";
 import { House, Landmark, Mic } from "lucide-react-native";
 import { StyleSheet } from "react-native";
+import { useTranslation } from "react-i18next";
 
 export default function TabLayout() {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   return (
     <Tabs
@@ -30,7 +32,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: t("tab_home", "Home"),
           tabBarIcon: ({ color, size, focused }) => (
             <House size={size} color={color} strokeWidth={focused ? 2.4 : 2} />
           ),
@@ -39,7 +41,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="schemes"
         options={{
-          title: "Schemes",
+          title: t("tab_schemes", "Schemes"),
           tabBarIcon: ({ color, size, focused }) => (
             <Landmark
               size={size}
@@ -52,7 +54,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="chat"
         options={{
-          title: "Chat",
+          title: t("tab_chat", "Chat"),
           tabBarIcon: ({ color, size, focused }) => (
             <Mic size={size} color={color} strokeWidth={focused ? 2.4 : 2} />
           ),

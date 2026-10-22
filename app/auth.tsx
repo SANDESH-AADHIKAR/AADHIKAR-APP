@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import Logo from '@/assets/icons/Logo';
-import { Alert, AlertIcon, AlertText } from '@/components/ui/alert';
-import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import Logo from "@/assets/icons/Logo";
+import { Alert, AlertIcon, AlertText } from "@/components/ui/alert";
+import { Button, ButtonSpinner, ButtonText } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   FormControl,
   FormControlError,
@@ -13,15 +13,15 @@ import {
   FormControlLabel,
   FormControlLabelAstrick,
   FormControlLabelText,
-} from '@/components/ui/form-control';
-import { Heading } from '@/components/ui/heading';
-import { HStack } from '@/components/ui/hstack';
-import { Input, InputField, InputSlot } from '@/components/ui/input';
-import { Text } from '@/components/ui/text';
-import { VStack } from '@/components/ui/vstack';
-import { ON_PRIMARY, mutedColor, trustColor } from '@/constants/theme';
-import { useAuth } from '@/providers/AuthProvider';
-import { useRouter, useTheme } from 'expo-router';
+} from "@/components/ui/form-control";
+import { Heading } from "@/components/ui/heading";
+import { HStack } from "@/components/ui/hstack";
+import { Input, InputField, InputSlot } from "@/components/ui/input";
+import { Text } from "@/components/ui/text";
+import { VStack } from "@/components/ui/vstack";
+import { ON_PRIMARY, mutedColor, trustColor } from "@/constants/theme";
+import { useAuth } from "@/providers/AuthProvider";
+import { useRouter, useTheme } from "expo-router";
 import {
   AlertCircle,
   ArrowLeft,
@@ -34,17 +34,14 @@ import {
   ShieldCheck,
   Sparkles,
   UserPlus,
-} from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  ScrollView,
-  View,
-} from 'react-native';
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "lucide-react-native";
+import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ActivityIndicator, ScrollView, View } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-type AuthMode = 'sign-in' | 'sign-up';
+type AuthMode = "sign-in" | "sign-up";
 
 type FieldErrors = {
   email?: string;
@@ -55,16 +52,17 @@ type FieldErrors = {
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function AuthScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const theme = useTheme();
   const muted = mutedColor(theme.dark);
   const trustInk = trustColor(theme.dark);
   const { session, isLoading, isConfigured, signIn, signUp } = useAuth();
 
-  const [mode, setMode] = useState<AuthMode>('sign-in');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [mode, setMode] = useState<AuthMode>("sign-in");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +74,7 @@ export default function AuthScreen() {
       if (router.canGoBack()) {
         router.back();
       } else {
-        router.replace('/chat');
+        router.replace("/chat");
       }
     }
   }, [isLoading, router, session]);
@@ -86,8 +84,8 @@ export default function AuthScreen() {
     setError(null);
     setNotice(null);
     setFieldErrors({});
-    setPassword('');
-    setConfirmPassword('');
+    setPassword("");
+    setConfirmPassword("");
     setShowPassword(false);
   };
 
@@ -95,22 +93,34 @@ export default function AuthScreen() {
     const nextErrors: FieldErrors = {};
 
     if (!email.trim()) {
-      nextErrors.email = 'Email is required.';
+      nextErrors.email = t("auth_err_email_req", "Email is required.");
     } else if (!EMAIL_PATTERN.test(email.trim())) {
-      nextErrors.email = 'Enter a valid email address.';
+      nextErrors.email = t(
+        "auth_err_email_inv",
+        "Enter a valid email address.",
+      );
     }
 
     if (!password) {
-      nextErrors.password = 'Password is required.';
+      nextErrors.password = t("auth_err_pass_req", "Password is required.");
     } else if (password.length < 6) {
-      nextErrors.password = 'Password must be at least 6 characters.';
+      nextErrors.password = t(
+        "auth_err_pass_len",
+        "Password must be at least 6 characters.",
+      );
     }
 
-    if (mode === 'sign-up') {
+    if (mode === "sign-up") {
       if (!confirmPassword) {
-        nextErrors.confirmPassword = 'Confirm your password.';
+        nextErrors.confirmPassword = t(
+          "auth_err_pass_conf",
+          "Confirm your password.",
+        );
       } else if (password !== confirmPassword) {
-        nextErrors.confirmPassword = 'Passwords do not match.';
+        nextErrors.confirmPassword = t(
+          "auth_err_pass_match",
+          "Passwords do not match.",
+        );
       }
     }
 
@@ -131,7 +141,7 @@ export default function AuthScreen() {
 
     try {
       const result =
-        mode === 'sign-in'
+        mode === "sign-in"
           ? await signIn(email, password)
           : await signUp(email, password);
 
@@ -142,11 +152,14 @@ export default function AuthScreen() {
 
       if (result.needsConfirmation) {
         setNotice(
-          'Account created. Check your email to confirm it, then sign in below.'
+          t(
+            "auth_confirm_msg",
+            "Account created. Check your email to confirm it, then sign in below.",
+          ),
         );
-        setMode('sign-in');
-        setPassword('');
-        setConfirmPassword('');
+        setMode("sign-in");
+        setPassword("");
+        setConfirmPassword("");
       }
     } finally {
       setIsSubmitting(false);
@@ -158,25 +171,26 @@ export default function AuthScreen() {
       router.back();
       return;
     }
-
-    router.replace('/');
+    router.replace("/");
   };
 
   const handleBrowse = () => {
-    router.replace('/');
+    router.replace("/");
   };
 
   if (isLoading || session) {
     return (
       <SafeAreaView
-        edges={['top', 'bottom']}
+        edges={["top", "bottom"]}
         className="flex-1 bg-background"
         style={{ flex: 1, backgroundColor: theme.colors.background }}
       >
         <VStack className="flex-1 items-center justify-center gap-3 px-5">
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text className="text-sm text-muted-foreground">
-            {session ? 'Taking you to Aadhikar AI...' : 'Checking your session...'}
+            {session
+              ? t("auth_redirecting", "Taking you to Aadhikar AI...")
+              : t("auth_checking", "Checking your session...")}
           </Text>
         </VStack>
       </SafeAreaView>
@@ -185,17 +199,14 @@ export default function AuthScreen() {
 
   return (
     <SafeAreaView
-      edges={['top', 'bottom']}
+      edges={["top", "bottom"]}
       className="flex-1 bg-background"
       style={{ flex: 1, backgroundColor: theme.colors.background }}
     >
-      <KeyboardAvoidingView
-        behavior="padding"
-        style={{ flex: 1 }}
-      >
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <ScrollView
           contentContainerClassName="px-5 py-6"
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -208,11 +219,13 @@ export default function AuthScreen() {
                 onPress={handleBack}
               >
                 <ArrowLeft size={16} color={muted} />
-                <ButtonText className="text-muted-foreground">Back</ButtonText>
+                <ButtonText className="text-muted-foreground">
+                  {t("auth_back", "Back")}
+                </ButtonText>
               </Button>
               <View className="rounded-full border border-border px-2.5 py-1">
                 <Text className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  Secure access
+                  {t("auth_secure", "Secure access")}
                 </Text>
               </View>
             </HStack>
@@ -222,11 +235,13 @@ export default function AuthScreen() {
                 <Logo size={48} />
               </View>
               <Heading size="2xl" className="text-center text-foreground">
-                Meet Aadhikar AI
+                {t("auth_meet", "Meet Aadhikar AI")}
               </Heading>
               <Text className="max-w-sm text-center text-sm leading-5 text-muted-foreground">
-                Browse every scheme without an account. Sign in only when you
-                want to ask the AI for guidance.
+                {t(
+                  "auth_desc",
+                  "Browse every scheme without an account. Sign in only when you want to ask the AI for guidance.",
+                )}
               </Text>
             </VStack>
 
@@ -237,22 +252,25 @@ export default function AuthScreen() {
                 borderColor: theme.colors.border,
               }}
             >
-              <HStack className="rounded-xl border border-border bg-muted p-1" space="xs">
+              <HStack
+                className="rounded-xl border border-border bg-muted p-1"
+                space="xs"
+              >
                 <Button
-                  variant={mode === 'sign-in' ? 'default' : 'ghost'}
+                  variant={mode === "sign-in" ? "default" : "ghost"}
                   size="sm"
                   className="flex-1"
-                  onPress={() => switchMode('sign-in')}
+                  onPress={() => switchMode("sign-in")}
                 >
-                  <ButtonText>Sign in</ButtonText>
+                  <ButtonText>{t("auth_signin", "Sign in")}</ButtonText>
                 </Button>
                 <Button
-                  variant={mode === 'sign-up' ? 'default' : 'ghost'}
+                  variant={mode === "sign-up" ? "default" : "ghost"}
                   size="sm"
                   className="flex-1"
-                  onPress={() => switchMode('sign-up')}
+                  onPress={() => switchMode("sign-up")}
                 >
-                  <ButtonText>Create account</ButtonText>
+                  <ButtonText>{t("auth_signup", "Create account")}</ButtonText>
                 </Button>
               </HStack>
 
@@ -283,7 +301,9 @@ export default function AuthScreen() {
               <VStack space="md">
                 <FormControl isInvalid={Boolean(fieldErrors.email)}>
                   <FormControlLabel>
-                    <FormControlLabelText>Email</FormControlLabelText>
+                    <FormControlLabelText>
+                      {t("auth_email", "Email")}
+                    </FormControlLabelText>
                     <FormControlLabelAstrick>*</FormControlLabelAstrick>
                   </FormControlLabel>
                   <Input
@@ -326,7 +346,9 @@ export default function AuthScreen() {
 
                 <FormControl isInvalid={Boolean(fieldErrors.password)}>
                   <FormControlLabel>
-                    <FormControlLabelText>Password</FormControlLabelText>
+                    <FormControlLabelText>
+                      {t("auth_pass", "Password")}
+                    </FormControlLabelText>
                     <FormControlLabelAstrick>*</FormControlLabelAstrick>
                   </FormControlLabel>
                   <Input
@@ -348,28 +370,25 @@ export default function AuthScreen() {
                           }));
                         }
                       }}
-                      placeholder="At least 6 characters"
+                      placeholder={t("auth_pass_ph", "At least 6 characters")}
                       placeholderTextColor={muted}
                       secureTextEntry={!showPassword}
                       autoCapitalize="none"
                       autoCorrect={false}
                       autoComplete={
-                        mode === 'sign-in' ? 'current-password' : 'new-password'
+                        mode === "sign-in" ? "current-password" : "new-password"
                       }
                       textContentType={
-                        mode === 'sign-in' ? 'password' : 'newPassword'
+                        mode === "sign-in" ? "password" : "newPassword"
                       }
-                      returnKeyType={mode === 'sign-in' ? 'go' : 'next'}
+                      returnKeyType={mode === "sign-in" ? "go" : "next"}
                       onSubmitEditing={
-                        mode === 'sign-in' ? handleSubmit : undefined
+                        mode === "sign-in" ? handleSubmit : undefined
                       }
                     />
                     <InputSlot
                       className="pr-3"
                       onPress={() => setShowPassword((current) => !current)}
-                      accessibilityLabel={
-                        showPassword ? 'Hide password' : 'Show password'
-                      }
                     >
                       {showPassword ? (
                         <EyeOff size={16} color={muted} />
@@ -384,20 +403,20 @@ export default function AuthScreen() {
                         {fieldErrors.password}
                       </FormControlErrorText>
                     </FormControlError>
-                  ) : mode === 'sign-up' ? (
+                  ) : mode === "sign-up" ? (
                     <FormControlHelper>
                       <FormControlHelperText>
-                        Use at least 6 characters.
+                        {t("auth_err_pass_len", "Use at least 6 characters.")}
                       </FormControlHelperText>
                     </FormControlHelper>
                   ) : null}
                 </FormControl>
 
-                {mode === 'sign-up' ? (
+                {mode === "sign-up" ? (
                   <FormControl isInvalid={Boolean(fieldErrors.confirmPassword)}>
                     <FormControlLabel>
                       <FormControlLabelText>
-                        Confirm password
+                        {t("auth_pass_confirm", "Confirm password")}
                       </FormControlLabelText>
                       <FormControlLabelAstrick>*</FormControlLabelAstrick>
                     </FormControlLabel>
@@ -420,7 +439,10 @@ export default function AuthScreen() {
                             }));
                           }
                         }}
-                        placeholder="Repeat your password"
+                        placeholder={t(
+                          "auth_pass_repeat",
+                          "Repeat your password",
+                        )}
                         placeholderTextColor={muted}
                         secureTextEntry={!showPassword}
                         autoCapitalize="none"
@@ -450,26 +472,26 @@ export default function AuthScreen() {
               >
                 {isSubmitting ? (
                   <ButtonSpinner color={ON_PRIMARY} />
-                ) : mode === 'sign-in' ? (
+                ) : mode === "sign-in" ? (
                   <LogIn size={18} color={ON_PRIMARY} />
                 ) : (
                   <UserPlus size={18} color={ON_PRIMARY} />
                 )}
                 <ButtonText>
                   {isSubmitting
-                    ? mode === 'sign-in'
-                      ? 'Signing in...'
-                      : 'Creating account...'
-                    : mode === 'sign-in'
-                      ? 'Sign in'
-                      : 'Create account'}
+                    ? mode === "sign-in"
+                      ? t("auth_signing_in", "Signing in...")
+                      : t("auth_creating", "Creating account...")
+                    : mode === "sign-in"
+                      ? t("auth_signin", "Sign in")
+                      : t("auth_signup", "Create account")}
                 </ButtonText>
               </Button>
 
               <HStack space="sm" className="items-center justify-center">
                 <ShieldCheck size={14} color={muted} />
                 <Text className="text-xs text-muted-foreground">
-                  Secured by Supabase
+                  {t("auth_secured_by", "Secured by Supabase")}
                 </Text>
               </HStack>
             </Card>
@@ -478,25 +500,33 @@ export default function AuthScreen() {
               <HStack space="sm" className="items-center">
                 <Sparkles size={16} color={theme.colors.primary} />
                 <Text className="text-sm font-semibold text-foreground">
-                  What stays free
+                  {t("auth_free", "What stays free")}
                 </Text>
               </HStack>
               <HStack space="sm" className="items-start">
                 <CheckCircle2 size={15} color={trustInk} />
                 <Text className="flex-1 text-xs leading-4 text-muted-foreground">
-                  Browse, search and filter all government schemes.
+                  {t(
+                    "auth_free_1",
+                    "Browse, search and filter all government schemes.",
+                  )}
                 </Text>
               </HStack>
               <HStack space="sm" className="items-start">
                 <CheckCircle2 size={15} color={trustInk} />
                 <Text className="flex-1 text-xs leading-4 text-muted-foreground">
-                  Open official application links without signing in.
+                  {t(
+                    "auth_free_2",
+                    "Open official application links without signing in.",
+                  )}
                 </Text>
               </HStack>
             </VStack>
 
             <Button variant="link" onPress={handleBrowse}>
-              <ButtonText>Continue browsing without signing in</ButtonText>
+              <ButtonText>
+                {t("auth_continue", "Continue browsing without signing in")}
+              </ButtonText>
             </Button>
           </VStack>
         </ScrollView>
