@@ -76,6 +76,10 @@
     "chat_signin_desc": "योजनाएं ब्राउज़ करना मुफ़्त है। पात्रता, लाभ और आवेदन कैसे करें, इस बारे में अधिकार AI से पूछने के लिए साइन इन करें।",
     "chat_checking_session": "आपका सत्र जाँचा जा रहा है...",
     "chat_signin_btn": "साइन इन करें",
-    "chat_secure_access": "Supabase के साथ सुरक्षित पहुँच"
+    "chat_secure_access": "Supabase के साथ सुरक्षित पहुँच",
+
+    "chat_new": "नया चैट",
+    "chat_history_title": "चैट इतिहास",
+    "chat_no_history": "कोई पुरानी बातचीत नहीं।"
   }
 }

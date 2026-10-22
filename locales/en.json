@@ -76,6 +76,10 @@
     "chat_signin_desc": "Browsing schemes stays free. Sign in to ask Aadhikar AI about eligibility, benefits, and how to apply.",
     "chat_checking_session": "Checking your session...",
     "chat_signin_btn": "Sign in",
-    "chat_secure_access": "Secure access with Supabase"
+    "chat_secure_access": "Secure access with Supabase",
+
+    "chat_new": "New Chat",
+    "chat_history_title": "Chat History",
+    "chat_no_history": "No past conversations."
   }
 }
