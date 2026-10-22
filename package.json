@@ -76,6 +76,7 @@
     "jest-expo": "~56.0.4",
     "postcss": "^8.5.6",
     "react-test-renderer": "19.0.0",
+    "sharp": "^0.35.5",
     "tailwindcss": "^4.2.0",
     "typescript": "~6.0.3"
   },

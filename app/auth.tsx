@@ -1,5 +1,6 @@
 'use client';
 
+import Logo from '@/assets/icons/Logo';
 import { Alert, AlertIcon, AlertText } from '@/components/ui/alert';
 import { Button, ButtonSpinner, ButtonText } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -217,10 +218,8 @@ export default function AuthScreen() {
             </HStack>
 
             <VStack space="sm" className="items-center">
-              <View className="h-16 w-16 items-center justify-center rounded-full bg-primary">
-                <Text className="text-2xl font-bold text-primary-foreground">
-                  A
-                </Text>
+              <View className="h-16 w-16 items-center justify-center rounded-full border border-border bg-white">
+                <Logo size={48} />
               </View>
               <Heading size="2xl" className="text-center text-foreground">
                 Meet Aadhikar AI

@@ -1,3 +1,4 @@
+import Logo from "@/assets/icons/Logo";
 import { MarkdownMessage } from "@/components/MarkdownMessage";
 import { Button, ButtonText } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -221,8 +222,8 @@ export default function ChatScreen() {
       style={{ flex: 1 }}
     >
       <View className="flex-row items-center gap-3 border-b border-border px-5 py-3">
-        <View className="h-10 w-10 items-center justify-center rounded-full bg-primary">
-          <Text className="text-base font-bold text-primary-foreground">A</Text>
+        <View className="h-10 w-10 items-center justify-center rounded-full border border-border bg-white">
+          <Logo size={30} />
         </View>
         <View className="flex-1 gap-0.5">
           <Text className="text-base font-semibold text-foreground">

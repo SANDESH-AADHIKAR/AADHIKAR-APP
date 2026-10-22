@@ -47,7 +47,12 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View className="flex-row items-center justify-between">
-          <Logo />
+          <View className="flex-row items-center gap-2.5">
+            <Logo size={38} />
+            <Text className="text-lg font-bold tracking-tight text-foreground">
+              Aadhikar AI
+            </Text>
+          </View>
           <Pressable
             accessibilityLabel="Open chat"
             onPress={openAI}
