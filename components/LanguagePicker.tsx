@@ -51,6 +51,14 @@ export function LanguagePicker() {
           <ActionsheetItem onPress={() => changeLanguage("mr")}>
             <ActionsheetItemText>मराठी</ActionsheetItemText>
           </ActionsheetItem>
+
+          <ActionsheetItem onPress={() => changeLanguage("gj")}>
+            <ActionsheetItemText>ગુજરાતી</ActionsheetItemText>
+          </ActionsheetItem>
+
+          <ActionsheetItem onPress={() => changeLanguage("be")}>
+            <ActionsheetItemText>বাংলা</ActionsheetItemText>
+          </ActionsheetItem>
         </ActionsheetContent>
       </Actionsheet>
     </>

@@ -374,6 +374,8 @@ export default function ChatScreen() {
       en: "English",
       hi: "Hindi",
       mr: "Marathi",
+      gj: "Gujarati",
+      be: "Bengali",
     };
     const currentLangName = langNames[i18n.language] || "English";
     const localizedContext = `${schemeContext}\n\nIMPORTANT INSTRUCTION: You must reply to the user entirely in ${currentLangName}. Current language context: ${currentLangName}.`;

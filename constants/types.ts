@@ -14,4 +14,5 @@ export type SchemeInfo = {
   benefits: string;
   eligibility: string;
   link: string;
+  is_active?: boolean | null;
 };

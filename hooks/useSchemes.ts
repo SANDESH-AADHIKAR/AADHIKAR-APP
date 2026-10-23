@@ -4,20 +4,36 @@ import { CATEGORIES } from "@/constants/schemes";
 import type { SchemeInfo } from "@/constants/types";
 import { supabase, supabaseConfigError } from "@/lib/supabase";
 
-const CATEGORY_ORDER: readonly string[] = CATEGORIES.filter(
-  (category) => category !== "All",
-);
+const CATEGORY_ORDER: readonly string[] = CATEGORIES;
 
 // Include the new translation columns in our raw type
 type RawSchemeRow = SchemeInfo & {
   sort_order?: number | null;
   name_hi?: string | null;
   name_mr?: string | null;
+  name_gj?: string | null;
+  name_be?: string | null;
   benefits_hi?: string | null;
   benefits_mr?: string | null;
+  benefits_gj?: string | null;
+  benefits_be?: string | null;
   eligibility_hi?: string | null;
   eligibility_mr?: string | null;
+  eligibility_gj?: string | null;
+  eligibility_be?: string | null;
 };
+
+/**
+ * Picks the translation for the active language, falling back to English
+ * when the column is missing or empty.
+ */
+function pickTranslation(
+  lang: string,
+  base: string,
+  translations: Record<string, string | null | undefined>,
+) {
+  return translations[lang] || base;
+}
 
 function categoryRank(category: string) {
   const index = CATEGORY_ORDER.indexOf(category);
@@ -69,11 +85,11 @@ export function useSchemes() {
     setError(null);
 
     try {
-      // Fetch the English columns PLUS the new Hindi and Marathi columns
+      // Fetch the English columns PLUS every translation column
       const { data, error: queryError } = await supabase
         .from("schemes")
         .select(
-          "id, category, name, name_hi, name_mr, benefits, benefits_hi, benefits_mr, eligibility, eligibility_hi, eligibility_mr, link, sort_order, is_active",
+          "id, category, name, name_hi, name_mr, name_gj, name_be, benefits, benefits_hi, benefits_mr, benefits_gj, benefits_be, eligibility, eligibility_hi, eligibility_mr, eligibility_gj, eligibility_be, link, sort_order, is_active",
         )
         .eq("is_active", true);
 
@@ -109,30 +125,30 @@ export function useSchemes() {
   // Dynamically map the raw database rows to the current language
   // This runs instantly whenever i18n.language changes without needing to hit the database again
   const localizedSchemes = useMemo<SchemeInfo[]>(() => {
-    const lang = i18n.language; // 'en', 'hi', or 'mr'
+    const lang = i18n.language; // 'en', 'hi', 'mr', 'gj', or 'be'
 
     return rawSchemes.map((row) => {
       // Pick the correct string, falling back to English if the translation is missing
-      const name =
-        lang === "hi" && row.name_hi
-          ? row.name_hi
-          : lang === "mr" && row.name_mr
-            ? row.name_mr
-            : row.name;
+      const name = pickTranslation(lang, row.name, {
+        hi: row.name_hi,
+        mr: row.name_mr,
+        gj: row.name_gj,
+        be: row.name_be,
+      });
 
-      const benefits =
-        lang === "hi" && row.benefits_hi
-          ? row.benefits_hi
-          : lang === "mr" && row.benefits_mr
-            ? row.benefits_mr
-            : row.benefits;
+      const benefits = pickTranslation(lang, row.benefits, {
+        hi: row.benefits_hi,
+        mr: row.benefits_mr,
+        gj: row.benefits_gj,
+        be: row.benefits_be,
+      });
 
-      const eligibility =
-        lang === "hi" && row.eligibility_hi
-          ? row.eligibility_hi
-          : lang === "mr" && row.eligibility_mr
-            ? row.eligibility_mr
-            : row.eligibility;
+      const eligibility = pickTranslation(lang, row.eligibility, {
+        hi: row.eligibility_hi,
+        mr: row.eligibility_mr,
+        gj: row.eligibility_gj,
+        be: row.eligibility_be,
+      });
 
       return {
         id: row.id,

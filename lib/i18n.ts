@@ -6,6 +6,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import en from "../locales/en.json";
 import hi from "../locales/hi.json";
 import mr from "../locales/mr.json";
+import gj from "../locales/gj.json";
+import be from "../locales/be.json";
 
 const STORE_LANGUAGE_KEY = "settings.lang";
 
@@ -21,7 +23,12 @@ const languageDetectorPlugin = {
       }
 
       const deviceLang = Localization.getLocales()[0].languageCode;
-      if (deviceLang === "hi" || deviceLang === "mr") {
+      if (
+        deviceLang === "hi" ||
+        deviceLang === "mr" ||
+        deviceLang === "gj" ||
+        deviceLang === "be"
+      ) {
         return callback(deviceLang);
       }
 
@@ -48,6 +55,8 @@ i18n
       en: en,
       hi: hi,
       mr: mr,
+      gj: gj,
+      be: be,
     },
     fallbackLng: "en",
     interpolation: {
