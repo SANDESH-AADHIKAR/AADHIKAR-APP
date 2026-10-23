@@ -38,7 +38,17 @@
         }
       ],
       "expo-status-bar",
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow Aadhikar AI to use the microphone so you can ask questions by voice.",
+          "speechRecognitionPermission": "Allow Aadhikar AI to use speech recognition to turn your voice into text.",
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

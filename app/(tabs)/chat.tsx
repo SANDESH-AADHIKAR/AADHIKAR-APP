@@ -16,24 +16,31 @@ import { Text } from "@/components/ui/text";
 import { VStack } from "@/components/ui/vstack";
 import { mutedColor, ON_PRIMARY } from "@/constants/theme";
 import { useSchemes } from "@/hooks/useSchemes";
+import { useVoiceInput } from "@/hooks/useVoiceInput";
 import {
   buildSchemeContext,
   describeGeminiError,
   hasGeminiKey,
   streamAadhikar,
 } from "@/lib/gemini";
+import { getSpeechLocale } from "@/lib/voice";
 import { useAuth } from "@/providers/AuthProvider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Speech from "expo-speech";
 import { useRouter, useTheme } from "expo-router";
 import {
   LogIn,
   LogOut,
   Menu,
   MessageSquare,
+  Mic,
   Plus,
   Send,
   ShieldCheck,
+  Square,
   Trash2,
+  Volume2,
+  VolumeX,
 } from "lucide-react-native";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -105,6 +112,8 @@ export default function ChatScreen() {
   const [inputHeight, setInputHeight] = useState(MIN_INPUT_HEIGHT);
   const [isTyping, setIsTyping] = useState(false);
 
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
+
   const { schemes } = useSchemes();
   const schemeContext = useMemo(() => buildSchemeContext(schemes), [schemes]);
 
@@ -112,7 +121,79 @@ export default function ChatScreen() {
   const activeRequest = useRef<AbortController | null>(null);
   const busyRef = useRef(false);
 
-  // 1. LOAD ALL SESSIONS ON MOUNT
+  // 1. VOICE INPUT (speech-to-text) — appends dictated text to the composer.
+  const {
+    isListening,
+    isStarting,
+    errorKey: voiceErrorKey,
+    start: startVoice,
+    stop: stopVoice,
+    cancel: cancelVoice,
+    clearError: clearVoiceError,
+  } = useVoiceInput({
+    language: i18n.language,
+    onText: setInput,
+  });
+
+  const toggleListening = () => {
+    if (isTyping || busyRef.current) return;
+
+    if (isListening) {
+      stopVoice();
+      return;
+    }
+
+    // Don't let the assistant's own voice get picked up by the mic.
+    Speech.stop();
+    setSpeakingId(null);
+
+    void startVoice({ baseText: input });
+  };
+
+  // Auto-dismiss voice errors so the composer stays uncluttered.
+  useEffect(() => {
+    if (!voiceErrorKey) return;
+
+    const timer = setTimeout(clearVoiceError, 6000);
+    return () => clearTimeout(timer);
+  }, [voiceErrorKey, clearVoiceError]);
+
+  // 2. TEXT-TO-SPEECH (read answers aloud)
+  const toggleSpeech = async (messageId: string, text: string) => {
+    if (speakingId === messageId) {
+      Speech.stop();
+      setSpeakingId(null);
+      return;
+    }
+
+    Speech.stop();
+    setSpeakingId(messageId);
+
+    const currentLocale = getSpeechLocale(i18n.language);
+
+    // Strip markdown so the voice engine reads it naturally.
+    const cleanText = text
+      .replace(/```[\s\S]*?```/g, " ")
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .replace(/^[#>\-*+]\s+/gm, "")
+      .replace(/[*_`~]/g, "")
+      .trim();
+
+    if (!cleanText) {
+      setSpeakingId(null);
+      return;
+    }
+
+    Speech.speak(cleanText, {
+      language: currentLocale,
+      onDone: () => setSpeakingId(null),
+      onError: () => setSpeakingId(null),
+      onStopped: () => setSpeakingId(null),
+    });
+  };
+
+  // 3. LOAD ALL SESSIONS ON MOUNT
   useEffect(() => {
     const loadHistory = async () => {
       if (!user?.id) {
@@ -131,7 +212,6 @@ export default function ChatScreen() {
         console.error("Failed to load chat history:", error);
       } finally {
         setIsHistoryLoaded(true);
-        // Start fresh every time the app opens
         setActiveSessionId(null);
         setMessages([WELCOME_MESSAGE]);
       }
@@ -142,7 +222,7 @@ export default function ChatScreen() {
     }
   }, [user?.id, isAuthLoading, WELCOME_MESSAGE]);
 
-  // 2. AUTO-SAVE SESSION WHEN STREAM FINISHES
+  // 4. AUTO-SAVE SESSION WHEN STREAM FINISHES
   useEffect(() => {
     if (!isHistoryLoaded || !user?.id || isTyping || !activeSessionId) return;
 
@@ -166,6 +246,7 @@ export default function ChatScreen() {
   useEffect(() => {
     return () => {
       activeRequest.current?.abort();
+      Speech.stop();
     };
   }, []);
 
@@ -205,6 +286,9 @@ export default function ChatScreen() {
   };
 
   const handleNewChat = () => {
+    cancelVoice();
+    Speech.stop();
+    setSpeakingId(null);
     activeRequest.current?.abort();
     busyRef.current = false;
     setIsTyping(false);
@@ -216,6 +300,9 @@ export default function ChatScreen() {
   const loadSession = (id: string) => {
     const selected = sessions.find((s) => s.id === id);
     if (selected) {
+      cancelVoice();
+      Speech.stop();
+      setSpeakingId(null);
       activeRequest.current?.abort();
       busyRef.current = false;
       setIsTyping(false);
@@ -234,7 +321,6 @@ export default function ChatScreen() {
         JSON.stringify(updatedSessions),
       );
     }
-    // If we deleted the active chat, reset to a new chat
     if (activeSessionId === id) {
       handleNewChat();
     }
@@ -244,6 +330,14 @@ export default function ChatScreen() {
     const text = rawText.trim();
     if (!text || busyRef.current) return;
     if (!session) return;
+
+    if (isListening) {
+      // Abort rather than stop: we already captured the dictated text in
+      // `rawText`, and a late final result would repopulate the cleared input.
+      cancelVoice();
+    }
+    Speech.stop();
+    setSpeakingId(null);
 
     busyRef.current = true;
 
@@ -339,6 +433,8 @@ export default function ChatScreen() {
   };
 
   const handleSignOut = () => {
+    cancelVoice();
+    Speech.stop();
     activeRequest.current?.abort();
     router.replace("/");
     void signOut();
@@ -516,6 +612,7 @@ export default function ChatScreen() {
           {messages.map((message) => {
             const isUser = message.role === "user";
             const isError = message.isError === true;
+            const isSpeakingThis = speakingId === message.id;
 
             return (
               <View
@@ -532,7 +629,29 @@ export default function ChatScreen() {
                       {message.text}
                     </Text>
                   ) : (
-                    <MarkdownMessage>{message.text}</MarkdownMessage>
+                    <View>
+                      <MarkdownMessage>{message.text}</MarkdownMessage>
+                      <Pressable
+                        onPress={() => toggleSpeech(message.id, message.text)}
+                        className="mt-3 flex-row items-center gap-2 self-start rounded-full bg-background/50 px-3 py-1.5"
+                      >
+                        {isSpeakingThis ? (
+                          <>
+                            <VolumeX size={14} color={theme.colors.primary} />
+                            <Text className="text-xs font-medium text-primary">
+                              {t("chat_stop", "Stop")}
+                            </Text>
+                          </>
+                        ) : (
+                          <>
+                            <Volume2 size={14} color={muted} />
+                            <Text className="text-xs font-medium text-muted-foreground">
+                              {t("chat_listen", "Listen")}
+                            </Text>
+                          </>
+                        )}
+                      </Pressable>
+                    </View>
                   )}
                 </View>
                 <Text className="px-1 text-xs text-muted-foreground">
@@ -568,15 +687,48 @@ export default function ChatScreen() {
         </ScrollView>
 
         <View className="border-t border-border px-4 pb-2 pt-3">
+          {isListening || isStarting || voiceErrorKey ? (
+            <View
+              className={`mb-2 flex-row items-center gap-2 rounded-xl px-3 py-2 ${
+                voiceErrorKey
+                  ? "border border-destructive/40 bg-destructive/10"
+                  : "bg-muted"
+              }`}
+            >
+              {voiceErrorKey ? (
+                <Text className="flex-1 text-xs leading-4 text-destructive">
+                  {t(voiceErrorKey, "Voice input is unavailable right now.")}
+                </Text>
+              ) : isStarting ? (
+                <>
+                  <ActivityIndicator size="small" color={muted} />
+                  <Text className="flex-1 text-xs text-muted-foreground">
+                    {t("voice_starting", "Starting microphone…")}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <View className="h-2 w-2 rounded-full bg-destructive" />
+                  <Text className="flex-1 text-xs font-medium text-foreground">
+                    {t(
+                      "voice_listening",
+                      "Listening… speak now, then tap the mic to stop.",
+                    )}
+                  </Text>
+                </>
+              )}
+            </View>
+          ) : null}
+
           <View className="flex-row items-end gap-2">
-            <View className="min-h-12 flex-1 justify-center rounded-2xl border border-input bg-card px-4 py-3">
+            <View className="min-h-12 flex-1 flex-row items-center justify-center rounded-2xl border border-input bg-card px-4 py-1">
               <TextInput
                 value={input}
                 onChangeText={setInput}
                 placeholder={t("chat_input_ph", "Ask about any scheme...")}
                 placeholderTextColor={muted}
-                className="text-sm text-foreground"
-                style={{ height: inputHeight, paddingVertical: 0 }}
+                className="text-sm text-foreground flex-1"
+                style={{ height: inputHeight, paddingVertical: 10 }}
                 multiline
                 onContentSizeChange={(event) =>
                   resizeInput(event.nativeEvent.contentSize.height)
@@ -585,6 +737,38 @@ export default function ChatScreen() {
                 returnKeyType="send"
               />
             </View>
+
+            <Pressable
+              accessibilityLabel={
+                isListening
+                  ? t("voice_stop", "Stop voice input")
+                  : t("voice_start", "Start voice input")
+              }
+              accessibilityState={{
+                disabled: isTyping || isStarting,
+                selected: isListening,
+              }}
+              onPress={toggleListening}
+              disabled={isTyping || isStarting}
+              className={`h-12 w-12 items-center justify-center rounded-2xl border ${
+                isListening
+                  ? "border-destructive bg-destructive"
+                  : isTyping || isStarting
+                    ? "border-border bg-secondary"
+                    : "border-input bg-card"
+              }`}
+            >
+              {isStarting ? (
+                <ActivityIndicator size="small" color={muted} />
+              ) : isListening ? (
+                <Square size={16} color={ON_PRIMARY} fill={ON_PRIMARY} />
+              ) : (
+                <Mic
+                  size={20}
+                  color={isTyping ? muted : theme.colors.primary}
+                />
+              )}
+            </Pressable>
 
             <Pressable
               accessibilityLabel={t("chat_send_msg", "Send message")}
@@ -598,6 +782,7 @@ export default function ChatScreen() {
               />
             </Pressable>
           </View>
+
           <Text className="mt-2 text-center text-xs text-muted-foreground">
             {t(
               "chat_disclaimer",

@@ -153,22 +153,21 @@ Coupling notes:
 
 ### 4.1 Technical spike (#5)
 
-- [ ] Choose the speech-to-text approach:
-    - `expo-speech-recognition` on native + Web Speech API on web, or
-    - record audio and transcribe via Gemini.
-- [ ] Confirm whether a development build is required (likely yes on native).
-- [ ] Add microphone/speech permissions to `app.json`.
-- [ ] Test on a real device and on web (HTTPS required for Web Speech API).
+- [x] Choose the speech-to-text approach: `expo-speech-recognition` — one API for native iOS/Android **and** the Web Speech API on web.
+- [x] Confirm whether a development build is required: yes on native (Expo Go cannot load the native module; the UI degrades gracefully with an "unsupported" message). Web needs no build.
+- [x] Add microphone/speech permissions to `app.json` via the `expo-speech-recognition` config plugin.
+- [ ] Test on a real device (`npx expo run:android` / `run:ios`) and on web (HTTPS or localhost required for the Web Speech API).
 
 ### 4.2 Voice typing UI (#5)
 
-- [ ] Add a mic button beside the send button.
-- [ ] Implement start/stop recording with a clear recording state.
-- [ ] Append interim/final transcripts into the input instead of replacing existing text.
-- [ ] Map the selected language to the recognition locale (`en-IN`, `hi-IN`, `mr-IN`).
-- [ ] Handle permission denied, unsupported device/browser and recognition errors.
-- [ ] Disable or handle voice while another request is in flight.
-- [ ] Web fallback for the demo if native voice slips.
+- [x] Add a mic button beside the send button.
+- [x] Implement start/stop recording with a clear recording state (red mic, stop icon, "Listening…" banner).
+- [x] Append interim/final transcripts into the input instead of replacing existing text.
+- [x] Map the selected language to the recognition locale (`en-IN`, `hi-IN`, `mr-IN`).
+- [x] Handle permission denied, unsupported device/browser, insecure origin and recognition errors.
+- [x] Disable voice while another request is in flight.
+- [x] Web fallback for the demo: the same mic works in Chrome/Edge via the Web Speech API.
+- [x] Read assistant answers aloud with `expo-speech`, using the same locale mapping and markdown-stripped text.
 
 ---
 
